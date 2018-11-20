@@ -16,7 +16,8 @@ To configure the JSON server, write or modify the `config.json` file.
   "port": "port number for the server to serve",
   "imports": {
     "module identifier": "module name", ...
-  }
+  },
+  "serviceDescriptor": "./data/service.json"
 }
 ```
 
@@ -168,7 +169,7 @@ Only use this particular definition if the condition is met, i.e. the expression
 }
 ```
 
-#### Headers
+#### headers
 Define response headers
 
 ```json
@@ -177,6 +178,38 @@ Define response headers
     "headers": {
       "Content-type": "text/html",
       "Set-cookie": "session=29222"
+    }
+  }
+}
+```
+
+#### preScript
+Provide Javascript to run before response is sent. The script is provided as a `string`.
+
+> Note: You do not need to use expression directive `${...}` in the `preScript` value.
+
+```json
+{
+  "/api/query": {
+    "*": {
+      "preScript": "ctx.data.queries = []",
+      "response": "./data/query-result.json"
+    }
+  }
+}
+```
+
+#### postScript
+Provide Javascript to run after the response is sent. The script is provided as a `string`.
+
+> Note: You do not need to use expression directive `${...}` in the `postScript` value.
+
+```json
+{
+  "/api/product": {
+    "*": {
+      "response": "./data/product.json",
+      "postScript": "ctx.data.summary = Math.round(ctx.data.price)"
     }
   }
 }

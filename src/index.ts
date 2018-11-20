@@ -1,3 +1,4 @@
+import * as bodyParser from "body-parser";
 import { exec } from "child_process";
 import * as express from "express";
 import { RequestHandler } from "express-serve-static-core";
@@ -9,26 +10,11 @@ import { config, loadLibraries, reloadConfig, reloadServiceFile } from "./utils"
 const app = express();
 const contextData = {};
 
-const con = new log.transports.Console({
-  format: log.format.printf((info) => `${moment().toISOString()} [${info.level}] ${info.message}`),
-});
-
-con.level = "debug";
-log.add(con);
-
-app.use("/", (req, res, next) => {
-  log.verbose(`path: ${req.path}`);
-  log.verbose("query");
-  log.verbose(JSON.stringify(req.query));
-  log.verbose("params");
-  log.verbose(JSON.stringify(req.params));
-  log.verbose("body");
-  log.verbose(JSON.stringify(req.body));
-
-  next();
-});
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded());
 
 reloadConfig();
+configureLogs();
 loadLibraries();
 
 const service = reloadServiceFile(config.serviceDescriptor || "./data/service.json");
@@ -46,12 +32,23 @@ interface MethodDef {
   redirect?: string; // URL to which response would be redirected. Mutually exclusive with response and errorResponse
   errorResponse?: number; // HTTP response code. Mutually exclusive with response and redirect
   response?: string;	// relative path to the file to use as a result. Supports: *.json, *.html
+  preScript?: string; // Javascript to run before the response is sent
+  postScript?: string; // Javascript to run after the response is sent
 }
 
 interface Service {
   [servicePath: string]: {
     [method: string]: MethodDef,
   };
+}
+
+function configureLogs() {
+  const con = new log.transports.Console({
+    format: log.format.printf((info) => `${moment().toISOString()} [${info.level}] ${info.message}`),
+  });
+
+  con.level = "debug";
+  log.add(con);
 }
 
 function processService(services: Service) {
@@ -79,32 +76,35 @@ function processService(services: Service) {
 }
 
 function getServiceHandler(mdef: MethodDef): RequestHandler {
-    return (req: express.Request, res: express.Response) => {
-      const file = mdef.response;
-      const context = {
-        data: contextData,
-        request: req,
-        response: res,
-      };
+  if (mdef.condition) {
+    log.warn("The 'condition' is not yet supported in this version.");
+  }
 
-      const interpolatedFile = interpolateStringValue(file, context);
-
-      if (!fs.existsSync(interpolatedFile)) {
-         res.sendStatus(404);
-         log.error(`Error: File not found: ${interpolatedFile}`);
-         return;
-      }
-
-      const data = fs.readFileSync(interpolatedFile, { encoding: "utf-8" });
-
-      if (interpolatedFile.match(/\.html$/i)) {
-        const html = interpolateHtml(data, context);
-        res.end(html);
-      } else if (interpolatedFile.match(/\.json$/i)) {
-        const json = interpolateJSON(data, context);
-        res.json(json);
-      }
+  return (req: express.Request, res: express.Response) => {
+    const context = {
+      data: contextData,
+      req, // short form
+      request: req,
+      res, // short form
+      response: res,
     };
+
+    if (mdef.preScript) {
+      executeJsExpression(mdef.preScript, context);
+    }
+
+    if (mdef.response) {
+      responseHandler(mdef, context);
+    } else if (mdef.redirect) {
+      redirectHandler(mdef, context);
+    } else if (mdef.errorResponse) {
+      errorHandler(mdef, context);
+    }
+
+    if (mdef.postScript) {
+      executeJsExpression(mdef.postScript, context);
+    }
+  };
 }
 
 function interpolateHtml(html: string, context: object): string {
@@ -129,6 +129,37 @@ function interpolateJSON(json: string, context: object): any {
   }
 
   return resultingObject;
+}
+
+function responseHandler(mdef: MethodDef, context: any) {
+  const file = mdef.response;
+
+  const interpolatedFile = interpolateStringValue(file, context);
+
+  if (!fs.existsSync(interpolatedFile)) {
+     context.res.sendStatus(404);
+     log.error(`Error: File not found: ${interpolatedFile}`);
+     return;
+  }
+
+  const data = fs.readFileSync(interpolatedFile, { encoding: "utf-8" });
+
+  if (interpolatedFile.match(/\.html$/i)) {
+    const html = interpolateHtml(data, context);
+    context.res.end(html);
+  } else if (interpolatedFile.match(/\.json$/i)) {
+    const json = interpolateJSON(data, context);
+    context.res.json(json);
+  }
+}
+
+function redirectHandler(mdef: MethodDef, context: any) {
+  const interpolatedJson = interpolateJSON(JSON.stringify(mdef), context);
+  context.res.redirect(interpolatedJson.redirect || "/");
+}
+
+function errorHandler(mdef: MethodDef, context: any) {
+  context.res.redirect(mdef.errorResponse || 500);
 }
 
 function interpolateStringValue(value: string, context: object): any {
