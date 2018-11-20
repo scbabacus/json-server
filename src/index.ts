@@ -14,6 +14,7 @@ const contextData = {};
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded());
 
+installSpecialCommands();
 reloadConfig();
 configureLogs();
 loadLibraries();
@@ -21,7 +22,7 @@ loadLibraries();
 const service = reloadServiceFile(config.serviceDescriptor || "./data/service.json");
 processService(service as Service);
 
-app.listen(config.port, () => log.info(`Listening ${config.port}`));
+const server = app.listen(config.port, () => log.info(`Listening ${config.port}`));
 
 // tslint:disable:interface-name
 interface MethodDef {
@@ -53,20 +54,35 @@ function configureLogs() {
   log.add(con);
 }
 
+function installSpecialCommands() {
+  app.get("/_stop", (req, res) => {
+    res.json({ success: true, time: moment().toISOString() });
+    server.close(() => log.info(`Server stopped at ${moment()}`));
+  });
+
+  app.get("/_reload", (req, res) => {
+    const s = reloadServiceFile(config.serviceDescriptor || "./data/service.json");
+    processService(s as Service);
+    res.json({ success: true });
+  });
+}
+
 function processService(services: Service) {
+  const router = express.Router();
+
   for (const svc of Object.keys(services)) {
     for (const method of Object.keys(services[svc])) {
       const svcItem = services[svc];
 
       switch (method.toLowerCase()) {
-        case "get": app.get(svc, getServiceHandler(svcItem[method])); break;
-        case "post": app.post(svc, getServiceHandler(svcItem[method])); break;
-        case "put": app.put(svc, getServiceHandler(svcItem[method])); break;
-        case "delete": app.delete(svc, getServiceHandler(svcItem[method])); break;
-        case "patch": app.patch(svc, getServiceHandler(svcItem[method])); break;
-        case "options": app.options(svc, getServiceHandler(svcItem[method])); break;
-        case "head": app.head(svc, getServiceHandler(svcItem[method])); break;
-        case "*": app.all(svc, getServiceHandler(svcItem[method])); break;
+        case "get": router.get(svc, getServiceHandler(svcItem[method])); break;
+        case "post": router.post(svc, getServiceHandler(svcItem[method])); break;
+        case "put": router.put(svc, getServiceHandler(svcItem[method])); break;
+        case "delete": router.delete(svc, getServiceHandler(svcItem[method])); break;
+        case "patch": router.patch(svc, getServiceHandler(svcItem[method])); break;
+        case "options": router.options(svc, getServiceHandler(svcItem[method])); break;
+        case "head": router.head(svc, getServiceHandler(svcItem[method])); break;
+        case "*": router.all(svc, getServiceHandler(svcItem[method])); break;
         default:
           log.error(`Could not register service - unsupported HTTP method: ${method}`);
           continue; // so that we don't log the success.
@@ -74,6 +90,7 @@ function processService(services: Service) {
 
       log.info(`Service registered: ${method} ${svc}`);
     }
+    app.use("/", router);
   }
 }
 
