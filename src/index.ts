@@ -226,7 +226,14 @@ function executeJsExpression(exp: string, context: object): any {
 function processCommand(command: string, innerJson: any, context: object): any {
   if (command === "$array") {
     return processArrayCommand(innerJson, context);
-  } else if (command === "$exec") { return processExecCommand(innerJson, context); }
+  } else if (command === "$exec") {
+    return processExecCommand(innerJson, context);
+  } else if (command === "$csv") {
+    return processCsvCommand(innerJson, context);
+  } else {
+    log.warn(`Unrecognized command: '${command}'`);
+    return JSON.parse(innerJson);
+  }
 }
 
 interface ArrayDescriptor {
@@ -263,4 +270,47 @@ function processExecCommand(innerJson: any, context: object): any {
 
   executeJsExpression(innerJson, context);
   return undefined; // such that the key is removed from the resulting object.
+}
+
+interface CsvDescriptor {
+  file: string;
+  element: any;
+  firstLineHeader?: boolean;
+  headers?: string[];
+  delimiter?: string;
+}
+
+function processCsvCommand(innerJson: any, context: object): any {
+  if (typeof innerJson !== "object") { throw Error(`expected object describing CSV descriptor`); }
+
+  const csvDesc = innerJson as CsvDescriptor;
+  const content = fs.readFileSync(csvDesc.file, { encoding: "utf-8" });
+  const delimiter = csvDesc.delimiter || ",";
+  const lines = content.split("\n");
+  let headers = csvDesc.headers || [];
+  const results = [];
+
+  lines.forEach((line, lineno) => {
+    if (csvDesc.firstLineHeader && lineno === 0) {
+      headers = line.split(delimiter);
+      return;
+    }
+
+    const cols = line.split(delimiter);
+    const col = {};
+    headers.forEach((hdr, i) => col[hdr] = cols[i]);
+
+    const processedElement = () => {
+      if (typeof(csvDesc.element) === "string") {
+        return interpolateStringValue(csvDesc.element, {...context, lineno, cols, col});
+      } else if (typeof(csvDesc.element) === "object") {
+        return interpolateJSON(csvDesc.element, {...context, lineno, cols, col});
+      } else {
+        return csvDesc.element;
+      }
+    };
+    results.push(processedElement);
+  });
+
+  return results;
 }

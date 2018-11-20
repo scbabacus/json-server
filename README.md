@@ -249,9 +249,7 @@ Used to repeatedly create an array of supplied element template.
   "data": {
     "$array": {
       "count": number,
-      "element": {
-        ... element template goes here ...
-      }
+      "element": string | object | any types
     }
   }
 }
@@ -274,6 +272,27 @@ Generates the output as:
 ```json
 {}
 ```
+
+#### $csv directive
+Reads records in a CSV file to create an array of templated elements.
+
+```json
+{
+  "$csv": {
+    "file": "file path",
+    "element": "string, object, or any types",
+    "firstLineHeader": false,
+    "headers": "optional string array of header variable names, defined in the same sequence againt columns",
+    "delimiter": "optional delimiter. Default to comma"
+  }
+}
+```
+parameters:
+- `file` Specifies path to the CSV file.
+- `element` Defines the element template. Can be a string (with expressions), object, or any types.
+- `firstLineHeader` Set to true if the first line on the CSV file defines header. If so, the headers will be used as a subscript to `col` in the context variable. Default to `false`.
+- `headers` Array of header names to override CSV file header, or when they are absent. The headers will be used as a subscript to `col` in the context variable.
+- `delimiter` A field delimiter for this CSV file.
 
 ## HTML template
 The current version does not support dynamic HTML content generation.
