@@ -5,6 +5,7 @@ import { RequestHandler } from "express-serve-static-core";
 import * as fs from "fs";
 import * as moment from "moment";
 import * as log from "winston";
+import * as lib from "./testlib";
 import { config, loadLibraries, reloadConfig, reloadServiceFile } from "./utils";
 
 const app = express();
@@ -32,6 +33,7 @@ interface MethodDef {
   redirect?: string; // URL to which response would be redirected. Mutually exclusive with response and errorResponse
   errorResponse?: number; // HTTP response code. Mutually exclusive with response and redirect
   response?: string;	// relative path to the file to use as a result. Supports: *.json, *.html
+  responseText?: string; // constant text response
   preScript?: string; // Javascript to run before the response is sent
   postScript?: string; // Javascript to run after the response is sent
 }
@@ -75,11 +77,7 @@ function processService(services: Service) {
   }
 }
 
-function getServiceHandler(mdef: MethodDef): RequestHandler {
-  if (mdef.condition) {
-    log.warn("The 'condition' is not yet supported in this version.");
-  }
-
+function getServiceHandler(plainMdef: MethodDef): RequestHandler {
   return (req: express.Request, res: express.Response) => {
     const context = {
       data: contextData,
@@ -89,8 +87,24 @@ function getServiceHandler(mdef: MethodDef): RequestHandler {
       response: res,
     };
 
+    global.request = req;
+    global.response = res;
+    global.req = req;
+    global.res = res;
+    global.data = contextData;
+
+    const mdef = interpolateJSON(plainMdef, context) as MethodDef;
+
+    if (mdef.condition) {
+      log.warn("The 'condition' is not yet supported in this version.");
+    }
+
     if (mdef.preScript) {
       executeJsExpression(mdef.preScript, context);
+    }
+
+    if (mdef.headers) {
+      populateHeaders(mdef, context);
     }
 
     if (mdef.response) {
@@ -99,6 +113,10 @@ function getServiceHandler(mdef: MethodDef): RequestHandler {
       redirectHandler(mdef, context);
     } else if (mdef.errorResponse) {
       errorHandler(mdef, context);
+    } else if (mdef.responseText) {
+      responseTextHandler(mdef, context);
+    } else {
+      res.sendStatus(500);
     }
 
     if (mdef.postScript) {
@@ -111,8 +129,8 @@ function interpolateHtml(html: string, context: object): string {
   return interpolateStringValue(html, context);
 }
 
-function interpolateJSON(json: string, context: object): any {
-  const jsonData = JSON.parse(json);
+function interpolateJSON(json: string | object, context: object): any {
+  const jsonData = typeof(json) === "object" ? json : JSON.parse(json);
 
   let resultingObject = {};
 
@@ -129,6 +147,13 @@ function interpolateJSON(json: string, context: object): any {
   }
 
   return resultingObject;
+}
+
+function populateHeaders(mdef: MethodDef, context: any) {
+  const res: express.Response = context.res;
+  Object.keys(mdef.headers).forEach((hdr) => {
+    res.set(hdr, mdef.headers[hdr]);
+  });
 }
 
 function responseHandler(mdef: MethodDef, context: any) {
@@ -154,12 +179,15 @@ function responseHandler(mdef: MethodDef, context: any) {
 }
 
 function redirectHandler(mdef: MethodDef, context: any) {
-  const interpolatedJson = interpolateJSON(JSON.stringify(mdef), context);
-  context.res.redirect(interpolatedJson.redirect || "/");
+  context.res.redirect(mdef.redirect || "/");
 }
 
 function errorHandler(mdef: MethodDef, context: any) {
   context.res.redirect(mdef.errorResponse || 500);
+}
+
+function responseTextHandler(mdef: MethodDef, context: any) {
+  context.res.send(mdef.responseText);
 }
 
 function interpolateStringValue(value: string, context: object): any {
@@ -203,7 +231,7 @@ function processCommand(command: string, innerJson: any, context: object): any {
 
 interface ArrayDescriptor {
   count: number;
-  element: object;
+  element: any;
 }
 
 function processArrayCommand(innerJson: any, context: object): any {
@@ -216,8 +244,15 @@ function processArrayCommand(innerJson: any, context: object): any {
   const result = [];
 
   for (let i = 0; i < arrayDescriptor.count; i++) {
-    const elemValue = interpolateJSON(JSON.stringify(arrayDescriptor.element), {...context, i});
-    result.push(elemValue);
+    if (typeof arrayDescriptor.element === "object") {
+      const elemValue = interpolateJSON(JSON.stringify(arrayDescriptor.element), {...context, i});
+      result.push(elemValue);
+    } else if (typeof arrayDescriptor.element === "string") {
+      const elemValue = interpolateStringValue(arrayDescriptor.element, {...context, i});
+      result.push(elemValue);
+    } else {
+      result.push(arrayDescriptor.element);
+    }
   }
 
   return result;

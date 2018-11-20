@@ -277,3 +277,24 @@ Generates the output as:
 
 ## HTML template
 The current version does not support dynamic HTML content generation.
+
+## The Test Library API Reference
+Utilities that are commonly required for convenience in creating mock API are preloaded by default. This bundle of utilities can be accessed under `lib` namespace. They can be used in any expressions evaluation on both service definition file and the template files.
+
+### lib.condition()
+Use as an expression in place of `if` statement. Condition returns the `then` evaluation if the `condition` is true. Otherwise, it returns the result of `else` evaluation.
+#### Declaration:
+`lib.condition(condition: boolean, then: () => any, else: () => any): any`
+
+### example
+```json
+{
+  "days": "${lib.condition(ctx.days > 30, () => days - 10, () => days + 20)}"
+}
+```
+
+### lib.randomDigits()
+Returns a random number as string for the given number of digits. Useful for generating random fix-length string IDs.
+
+### Declaration:
+`lib.randomDigits(len: number = 8): string`

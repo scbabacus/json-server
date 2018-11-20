@@ -7,7 +7,7 @@ export function condition(cond: boolean, then: () => any, elseExp: () => any): a
 }
 
 export function randomChoice(...choices: string[]): string {
-  return choices[Math.round(Math.random() * choices.length)];
+  return choices[Math.floor(Math.random() * choices.length)];
 }
 
 export function weightedRandomChoice(choices: {[key: string]: number}): string {

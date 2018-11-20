@@ -24,6 +24,10 @@ export function reloadConfig() {
 }
 
 export function loadLibraries() {
+  // auto inject of our local useful test library
+  // tslint:disable:no-string-literal
+  config.imports["lib"] = "./testlib";
+
   Object.keys(config.imports).forEach((modName) => {
     try {
       global[modName] = require(config.imports[modName]);
