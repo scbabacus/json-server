@@ -1,0 +1,7 @@
+{
+  "port": "80",
+  "imports": {
+    "moment": "moment",
+    "uuid": "uuid"
+  }
+}

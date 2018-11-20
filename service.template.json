@@ -1,0 +1,10 @@
+{
+  "/api/health": {
+    "GET": {
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "responseText": "{\"success\": true, \"health\": \"healthy\"}"
+    }
+  }
+}

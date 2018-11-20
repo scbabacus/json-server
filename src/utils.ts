@@ -1,30 +1,29 @@
 
+import { readFile, readFileSync } from "fs";
 import { promisify } from "util";
-import { readFileSync, readFile } from "fs";
-import * as log from 'winston';
+import * as log from "winston";
 
 export let config = {
-  port: "8080",
   data: {
+    source: "./data",
     type: "local",
-    source: "./data"
   },
-  imports: {}
+  imports: {},
+  port: "8080",
+  serviceDescriptor: "./data/service.json",
 };
 
-export function reloadConfig()
-{
+export function reloadConfig() {
   try {
     const loadedConfig = JSON.parse(readFileSync("./config.json").toString("utf-8"));
     config = loadedConfig;
-    console.log(`Configuration loaded.`);
+    log.verbose(`Configuration loaded.`);
   } catch (ex) {
-    console.log(`Could not load configuration. Falling back to defaults.`);
+    log.error(`Could not load configuration. Falling back to defaults.`);
   }
 }
 
-export function loadLibraries()
-{
+export function loadLibraries() {
   Object.keys(config.imports).forEach((modName) => {
     try {
       global[modName] = require(config.imports[modName]);
@@ -35,12 +34,11 @@ export function loadLibraries()
   });
 }
 
-export function reloadServiceFile(): Object
-{
+export function reloadServiceFile(serviceFilePath: string): object {
   try {
-    const loadedService = JSON.parse(readFileSync("./data/service.json").toString("utf-8"));
+    const loadedService = JSON.parse(readFileSync(serviceFilePath).toString("utf-8"));
     return loadedService;
   } catch (ex) {
-    console.log(`Error: could not load the service file. Make sure you place the service.json in ./data`);
+    log.error(`Error: could not load the service file. Make sure '${serviceFilePath}' is accessible.`);
   }
 }

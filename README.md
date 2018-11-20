@@ -51,7 +51,7 @@ in `orders.json`:
 > Note: You'll need to issue `npm install <module>` to install external modules before being able to import them to the service.
 
 ## Writing service.json
-You create `service.json` file to define APIs. The `service.json` file is loaded when the server starts. You may need to restart the server if you made changes to this file.
+You create `service.json` file to define APIs. The `service.json` file is loaded when the server starts. It is located at `./data/services.json` by default. However, you can specify the different location in `serviceDescriptor` property on the `config.json` file. You may need to restart the server if you made changes to the service descriptor file.
 
 To define an API, use the *route path* as a key. Under the route path key, defines the HTTP methods, i.e. `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS`, `PATCH`, `HEAD` etc. A special method `*` can also be specified if you want the route path to serve for every HTTP methods.
 

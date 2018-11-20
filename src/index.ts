@@ -31,7 +31,7 @@ app.use("/", (req, res, next) => {
 reloadConfig();
 loadLibraries();
 
-const service = reloadServiceFile();
+const service = reloadServiceFile(config.serviceDescriptor || "./data/service.json");
 processService(service as Service);
 
 app.listen(config.port, () => log.info(`Listening ${config.port}`));
