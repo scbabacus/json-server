@@ -281,7 +281,7 @@ Used to execute a Javascript statement without generating values in any outputs.
 For example, for this json template:
 ```json
 {
-  "$exec": "ctx.lastCall = new Date()"
+  "field": { "$exec": "ctx.lastCall = new Date()" }
 }
 ```
 Generates the output as:
