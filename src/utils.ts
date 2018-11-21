@@ -1,14 +1,16 @@
 import { readFile, readFileSync } from "fs";
 import { promisify } from "util";
 import * as log from "winston";
-import { IFileReader } from "./file-reader";
+import { DefaultFileReader, IFileReader } from "./file-reader";
 import { S3Reader } from "./s3-reader";
 
-export let config = {
-  data: {
-    source: "./data",
-    type: "local",
-  },
+interface IJsonServerConfig {
+  imports: { [aliasName: string]: string };
+  port: string;
+  serviceDescriptor: string;
+}
+
+export let config: IJsonServerConfig = {
   imports: {},
   port: "8080",
   serviceDescriptor: "./data/service.json",
@@ -42,17 +44,24 @@ export function loadLibraries() {
 export function getReaderForUri(uri: string): IFileReader {
   if (S3Reader.isS3Uri(uri)) {
     return S3Reader.getInstance();
+  } else {
+    return DefaultFileReader.getInstance();
   }
 }
 
-export async function reloadServiceFile(serviceFilePath: string): Promise<object> {
+export async function reloadServiceFile(serviceFilePath: string): Promise<object | null> {
   try {
     const rdr = getReaderForUri(serviceFilePath);
     const serviceFileContent = await rdr.readFile(serviceFilePath);
-    const loadedService = JSON.parse(serviceFileContent);
-    return loadedService;
+    if (serviceFileContent !== null) {
+      const loadedService = JSON.parse(serviceFileContent);
+      return loadedService;
+    } else {
+      return null;
+    }
   } catch (ex) {
     log.error(`Error: could not load the service file. Make sure '${serviceFilePath}' is accessible.`);
     log.debug(ex);
   }
+  return null;
 }

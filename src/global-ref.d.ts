@@ -4,6 +4,7 @@ declare module NodeJS {
 		response: any;
 		req: any;
 		res: any;
-    data: any;
+		data: any;
+		[variable:string]: any;
 	}
 }

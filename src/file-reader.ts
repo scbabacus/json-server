@@ -8,7 +8,13 @@ export interface IFileReader {
 const readFileAsync = promisify(readFile);
 
 export class DefaultFileReader implements IFileReader {
-  public async readFile(path: string, options?: any): Promise<string> {
-    return readFileAsync(path, {encoding: "utf-8"});
+  public static getInstance() {
+    return DefaultFileReader.instance || (DefaultFileReader.instance = new DefaultFileReader());
+  }
+
+  private static instance: DefaultFileReader | null = null;
+
+  public async readFile(path: string): Promise<string> {
+    return await readFileAsync(path, {encoding: "utf-8"});
   }
 }

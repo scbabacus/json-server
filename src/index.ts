@@ -4,6 +4,7 @@ import * as express from "express";
 import { RequestHandler } from "express-serve-static-core";
 import * as fs from "fs";
 import * as moment from "moment";
+import { Server } from "net";
 import * as log from "winston";
 import * as lib from "./testlib";
 import { config, getReaderForUri, loadLibraries, reloadConfig, reloadServiceFile } from "./utils";
@@ -19,12 +20,16 @@ reloadConfig();
 configureLogs();
 loadLibraries();
 
-let server = null;
+let server: Server | null = null;
 
 (async () => {
   const service = await reloadServiceFile(config.serviceDescriptor || "./data/service.json");
-  processService(service as Service);
-  server = app.listen(config.port, () => log.info(`Listening ${config.port}`));
+  if (service !== null) {
+    await processService(service as Service);
+    server = app.listen(config.port, () => log.info(`Listening ${config.port}`));
+  } else {
+    log.error(`Could not start server: failed to load the service descriptor file.`);
+  }
 })();
 
 // tslint:disable:interface-name
@@ -60,7 +65,11 @@ function configureLogs() {
 function installSpecialCommands() {
   app.get("/_stop", (req, res) => {
     res.json({ success: true, time: moment().toISOString() });
-    server.close(() => log.info(`Server stopped at ${moment()}`));
+    if (server) {
+      server.close(() => log.info(`Server stopped at ${moment()}`));
+    } else {
+      log.error("The server is not currently active.");
+    }
   });
 
   app.get("/_reload", async (req, res) => {
@@ -152,7 +161,7 @@ function interpolateHtml(html: string, context: object): string {
 async function interpolateJSON(json: string | object, context: object): Promise<any> {
   const jsonData = typeof(json) === "object" ? json : JSON.parse(json);
 
-  let resultingObject = {};
+  let resultingObject: {[key: string]: any} = {};
 
   for (const key of Object.keys(jsonData)) {
     if (key.match(/^\$/)) {
@@ -171,12 +180,18 @@ async function interpolateJSON(json: string | object, context: object): Promise<
 
 function populateHeaders(mdef: MethodDef, context: any) {
   const res: express.Response = context.res;
+  if (mdef.headers === undefined) { throw new Error("Unexpected Error: missing headers in method definition"); }
+
   Object.keys(mdef.headers).forEach((hdr) => {
-    res.set(hdr, mdef.headers[hdr]);
+    if (mdef.headers !== undefined) {
+      res.set(hdr, mdef.headers[hdr]);
+    }
   });
 }
 
 async function responseHandler(mdef: MethodDef, context: any) {
+  if (mdef.response === undefined) { throw new Error(`Unexpected Error: response is undefined.`); }
+
   const file = mdef.response;
 
   const interpolatedFile = interpolateStringValue(file, context);
@@ -323,7 +338,7 @@ async function processCsvCommand(innerJson: any, context: object): Promise<any> 
     lineno++;
 
     const cols = line.split(delimiter);
-    const col = {};
+    const col: {[key: string]: string} = {};
     headers.forEach((hdr, i) => col[hdr] = cols[i]);
 
     const processedElement = async () => {

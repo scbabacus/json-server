@@ -1,6 +1,16 @@
 # THE JSON SERVER MOCKUP TOOL
 JSON server enables you to quickly provide a mockup server that serves RESTful protocols. You write the API in `service.json` and then provide corresponding responses for each API there. The responses can be read from `.json` files, `.html` files, `.txt`, or even provided as a string. You can write Javascript expressions in the `.json` or `.html` files as well to create a template that could provide dynamic responses.
 
+## Content
+- [Running the JSON server](#running-the-json-server)
+- [Configure the server using config.json](#configure-the-server-using-config.json)
+- [Writing service.json](#writing-service.json)
+- [API Definition](#api-definition)
+- [JavaScript Expressions](#javascript-expression)
+- [JSON template](#json-template)
+- [HTML template](#html-template)
+- [Support of S3 Hosted Files](#support-of-s3-hosted-files)
+- [The Test Library API Reference](#the-test-library-api-reference)
 ## Running the JSON server
 - Ensure you have `ts-node` installed. issue `npm install -g ts-node` before advancing to the next step.
 
@@ -51,6 +61,11 @@ in `orders.json`:
 
 > Note: You'll need to issue `npm install <module>` to install external modules before being able to import them to the service.
 
+### serviceDescriptor
+You may specify the location of the service descriptor file using the `serviceDescriptor` configuration parameter. The content of this parameter can be
+- An absolute path on local machine
+- A relative path against the current working directory
+- A URI describing S3 object (see [S3 Support](#support-of-s3-hosted-files) for more detail)
 ## Writing service.json
 You create `service.json` file to define APIs. The `service.json` file is loaded when the server starts. It is located at `./data/services.json` by default. However, you can specify the different location in `serviceDescriptor` property on the `config.json` file. You may need to restart the server if you made changes to the service descriptor file.
 
@@ -296,6 +311,16 @@ parameters:
 
 ## HTML template
 The current version does not support dynamic HTML content generation.
+
+## Support of S3 Hosted Files
+JSON Server supports AWS S3 hosted files in most of the configuration and descriptors that require file path. To refer to S3 stored content, simply use `s3://` URI scheme in place of the path.
+
+For example, in `config.json` you may use:
+```json
+{
+  "serviceDescriptor": "s3://your-s3-bucket-name/path/to/object.json"
+}
+```
 
 ## The Test Library API Reference
 Utilities that are commonly required for convenience in creating mock API are preloaded by default. This bundle of utilities can be accessed under `lib` namespace. They can be used in any expressions evaluation on both service definition file and the template files.

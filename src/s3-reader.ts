@@ -7,14 +7,14 @@ const s3 = new aws.S3();
 export class S3Reader implements IFileReader {
 
   public static isS3Uri(uri: string): boolean {
-    return uri.match(/^s3\:\/\/(.*?)(\/.*)$/i) !== undefined;
+    return uri.match(/^s3\:\/\/(.*?)(\/.*)$/i) !== null;
   }
 
   public static getInstance(): S3Reader {
     return S3Reader.instance || (S3Reader.instance = new S3Reader());
   }
 
-  private static instance: S3Reader = null;
+  private static instance: S3Reader | null = null;
 
   private constructor() {
   }
@@ -45,6 +45,7 @@ export class S3Reader implements IFileReader {
 
   private createGetObjectRequestFromUri(uri: string): aws.S3.GetObjectRequest {
     const captured = uri.match(/^s3\:\/\/(.*?)(\/.*)$/i);
+    if (captured === null) { throw new Error(`The URI ${uri} is not an S3 URI.`); }
     const bucket = captured[1];
     const key = captured[2];
 
