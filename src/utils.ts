@@ -1,7 +1,8 @@
-
 import { readFile, readFileSync } from "fs";
 import { promisify } from "util";
 import * as log from "winston";
+import { IFileReader } from "./file-reader";
+import { S3Reader } from "./s3-reader";
 
 export let config = {
   data: {
@@ -38,11 +39,20 @@ export function loadLibraries() {
   });
 }
 
-export function reloadServiceFile(serviceFilePath: string): object {
+export function getReaderForUri(uri: string): IFileReader {
+  if (S3Reader.isS3Uri(uri)) {
+    return S3Reader.getInstance();
+  }
+}
+
+export async function reloadServiceFile(serviceFilePath: string): Promise<object> {
   try {
-    const loadedService = JSON.parse(readFileSync(serviceFilePath).toString("utf-8"));
+    const rdr = getReaderForUri(serviceFilePath);
+    const serviceFileContent = await rdr.readFile(serviceFilePath);
+    const loadedService = JSON.parse(serviceFileContent);
     return loadedService;
   } catch (ex) {
     log.error(`Error: could not load the service file. Make sure '${serviceFilePath}' is accessible.`);
+    log.debug(ex);
   }
 }
