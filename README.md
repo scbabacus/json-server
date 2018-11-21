@@ -246,6 +246,8 @@ The following is an example of how expressions can be used:
 ## JSON template
 The JSON files you defined in the `service.json` file as the values to the `response` property are JSON templates. A JSON template can be a static content, having no expressions or directives, or dynamic, with expressions and/or directives within them. The dynamic generation of JSON file according to the template is a powerful feature of JSON server, which enables you to generate test cases that work for you.
 
+### Use of Variables in Javascript Expressions
+
 ### The Context variable
 The context variable can be accessed in the expression as a `ctx` variable. There are useful properties of this context variable that you can use. They are:
 

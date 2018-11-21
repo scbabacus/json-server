@@ -44,7 +44,7 @@ export class S3Reader implements IFileReader {
   }
 
   private createGetObjectRequestFromUri(uri: string): aws.S3.GetObjectRequest {
-    const captured = uri.match(/^s3\:\/\/(.*?)(\/.*)$/i);
+    const captured = uri.match(/^s3\:\/\/(.*?)\/(.*)$/i);
     if (captured === null) { throw new Error(`The URI ${uri} is not an S3 URI.`); }
     const bucket = captured[1];
     const key = captured[2];
