@@ -260,15 +260,20 @@ function executeJsExpression(exp: string, context: object): any {
 }
 
 async function processCommand(command: string, innerJson: any, context: object): Promise<any> {
-  if (command === "$array") {
-    return processArrayCommand(innerJson, context);
-  } else if (command === "$exec") {
-    return processExecCommand(innerJson, context);
-  } else if (command === "$csv") {
-    return processCsvCommand(innerJson, context);
+
+  const commandMap: {[fn: string]: (innerJson: any, context: object) => Promise<any>} = {
+    $array: processArrayCommand,
+    $csv: processCsvCommand,
+    $exec: processExecCommand,
+    $if: processIfCommand,
+  };
+
+  const fn = commandMap[command];
+  if (fn !== undefined) {
+    return await fn(innerJson, context);
   } else {
     log.warn(`Unrecognized command: '${command}'`);
-    return JSON.parse(innerJson);
+    return { [command]: JSON.parse(innerJson) };
   }
 }
 
@@ -301,7 +306,7 @@ async function processArrayCommand(innerJson: any, context: object): Promise<any
   return result;
 }
 
-function processExecCommand(innerJson: any, context: object): any {
+async function processExecCommand(innerJson: any, context: object): Promise<any> {
   if (typeof innerJson !== "string") { throw Error(`expected string for $exec value`); }
 
   executeJsExpression(innerJson, context);
@@ -354,4 +359,20 @@ async function processCsvCommand(innerJson: any, context: object): Promise<any> 
   }
 
   return results;
+}
+
+async function processIfCommand(innerJson: any, context: object): Promise<any> {
+  if (innerJson.condition === undefined) {
+    throw Error("expected $if.condition to be provided.");
+  }
+
+  if (!innerJson.then) {
+    throw Error("expected $if.then to be provided");
+  }
+
+  if (innerJson.condition) {
+    return innerJson.then;
+  } else {
+    return innerJson.else;
+  }
 }

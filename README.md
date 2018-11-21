@@ -310,6 +310,31 @@ parameters:
 - `firstLineHeader` Set to true if the first line on the CSV file defines header. If so, the headers will be used as a subscript to `col` in the context variable. Default to `false`.
 - `headers` Array of header names to override CSV file header, or when they are absent. The headers will be used as a subscript to `col` in the context variable.
 - `delimiter` A field delimiter for this CSV file.
+  
+#### $if directive
+Conditionally return the element defined in `then` property if the `condition` implies JavaScript truthly value. Otherwise, the `else` element is returned, if defined. Otherwise, the target field is eliminated.
+
+> Note: You need to use Javascript expression `${...}` for `condition` if you plan to provide expression to evaluate rather than a constant string or a value.
+
+```json
+{
+  "pricing": { 
+    "$if": {
+      "condition": "${data.price > 200}",
+      "then": "expensive",
+      "else": "inexpensive"
+    } 
+  },
+
+  "errorMessage": { 
+    "$if": { 
+      "condition": "${data.error}",
+      "then": "${data.errmsg}" 
+      }
+    }
+}
+```
+> Note: Unlike the full-fleged languages, JSON-server DSL does not defer the evaluation of `then` statements to when the condition is true, as well as for an `else` when the condition evalues to false. JSON server pre-evaluates the entire JSON structure before directive evaluation so all expressions are evaluated regardless of the `condition` resulting value.
 
 ## HTML template
 The current version does not support dynamic HTML content generation.
