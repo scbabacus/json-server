@@ -1,6 +1,16 @@
 # THE JSON SERVER MOCKUP TOOL
 JSON server enables you to quickly provide a mockup server that serves RESTful protocols. You write the API in `service.json` and then provide corresponding responses for each API there. The responses can be read from `.json` files, `.html` files, `.txt`, or even provided as a string. You can write Javascript expressions in the `.json` or `.html` files as well to create a template that could provide dynamic responses.
 
+## Content
+- [Running the JSON server](#running-the-json-server)
+- [Configure the server using config.json](#configure-the-server-using-config.json)
+- [Writing service.json](#writing-service.json)
+- [API Definition](#api-definition)
+- [JavaScript Expressions](#javascript-expression)
+- [JSON template](#json-template)
+- [HTML template](#html-template)
+- [Support of S3 Hosted Files](#support-of-s3-hosted-files)
+- [The Test Library API Reference](#the-test-library-api-reference)
 ## Running the JSON server
 - Ensure you have `ts-node` installed. issue `npm install -g ts-node` before advancing to the next step.
 
@@ -51,6 +61,11 @@ in `orders.json`:
 
 > Note: You'll need to issue `npm install <module>` to install external modules before being able to import them to the service.
 
+### serviceDescriptor
+You may specify the location of the service descriptor file using the `serviceDescriptor` configuration parameter. The content of this parameter can be
+- An absolute path on local machine
+- A relative path against the current working directory
+- A URI describing S3 object (see [S3 Support](#support-of-s3-hosted-files) for more detail)
 ## Writing service.json
 You create `service.json` file to define APIs. The `service.json` file is loaded when the server starts. It is located at `./data/services.json` by default. However, you can specify the different location in `serviceDescriptor` property on the `config.json` file. You may need to restart the server if you made changes to the service descriptor file.
 
@@ -231,6 +246,8 @@ The following is an example of how expressions can be used:
 ## JSON template
 The JSON files you defined in the `service.json` file as the values to the `response` property are JSON templates. A JSON template can be a static content, having no expressions or directives, or dynamic, with expressions and/or directives within them. The dynamic generation of JSON file according to the template is a powerful feature of JSON server, which enables you to generate test cases that work for you.
 
+### Use of Variables in Javascript Expressions
+
 ### The Context variable
 The context variable can be accessed in the expression as a `ctx` variable. There are useful properties of this context variable that you can use. They are:
 
@@ -297,15 +314,26 @@ parameters:
 ## HTML template
 The current version does not support dynamic HTML content generation.
 
+## Support of S3 Hosted Files
+JSON Server supports AWS S3 hosted files in most of the configuration and descriptors that require file path. To refer to S3 stored content, simply use `s3://` URI scheme in place of the path.
+
+For example, in `config.json` you may use:
+```json
+{
+  "serviceDescriptor": "s3://your-s3-bucket-name/path/to/object.json"
+}
+```
+
 ## The Test Library API Reference
-Utilities that are commonly required for convenience in creating mock API are preloaded by default. This bundle of utilities can be accessed under `lib` namespace. They can be used in any expressions evaluation on both service definition file and the template files.
+Utilities that are commonly required for convenience in creating mock API are preloaded by default. This bundle of utilities can be accessed under `lib` namespace. They can be used in any expression evaluations on both service definition file and the template files.
 
 ### lib.condition()
 Use as an expression in place of `if` statement. Condition returns the `then` evaluation if the `condition` is true. Otherwise, it returns the result of `else` evaluation.
+> Note: The `if` and the conditional expression in Javascript can also be used. This interface is just provided for convenience.
 #### Declaration:
 `lib.condition(condition: boolean, then: () => any, else: () => any): any`
 
-### example
+#### example
 ```json
 {
   "days": "${lib.condition(ctx.days > 30, () => days - 10, () => days + 20)}"
@@ -313,7 +341,45 @@ Use as an expression in place of `if` statement. Condition returns the `then` ev
 ```
 
 ### lib.randomDigits()
-Returns a random number as string for the given number of digits. Useful for generating random fix-length string IDs.
+Returns a random number or letters in the given character class as string for the given number of digits. Useful for generating random fix-length string IDs.
 
-### Declaration:
-`lib.randomDigits(len: number = 8): string`
+#### Declaration
+`lib.randomDigits(len: number = 8, charClass: string = lib.CC_NUMBERS): string`
+
+#### Parameters
+- `len` **optional** number of digits to be returned
+- `charClass` **optional** string of available characters to pick at random
+  - The library has provided constant strings for mostly used character classes
+    - `lib.CC_ALPHANUM` for Alphanumeric (numbers and capital letters, 0-9 A-Z)
+    - `lib.CC_MIX_ALPHANUM` for Alphanumeric with mixed character cases (0-9 A-Z a-z)
+    - `lib.CC_NUMBERS` for numeric digits (0-9)
+    - `lib.CC_CAPITALS` for capital letters (A-Z)
+    - `lib.CC_LOWERCASES` for lowercase letters (a-z)
+    - You can also use them in mix, for example `lib.CC_LOWERCASES + lib.CC_CAPITALS`.
+
+#### Example
+```json
+{
+  "username": "${lib.randomDigits(lib.randomNumber(15,3), lib.CC_CAPITALS)}", 
+  "password": "${lib.randomDigits(16, lib.CC_MIX_ALPHANUM + '!@#$%^&*()_-+=\\/.\\'\"<>?{}[]')"
+}
+```  
+
+### lib.randomNumber
+Returns the random number in the range of the given [max, min] inclusive.
+
+#### Declaration
+`lib.randomNumber(max: number = 100, min: number = 0)`
+
+#### Parameters
+- `max` **optional** maximum possible number to return, inclusive. Default to 100
+- `min` **optional** minimum possible number to return, inclusive. Default to 0
+
+#### Example
+```json
+{
+  "price": "USD ${lib.randomNumber(100)}",
+  "height": "${lib.randomNumber(210, 140)} cm"
+}
+```
+

@@ -4,9 +4,10 @@ import * as express from "express";
 import { RequestHandler } from "express-serve-static-core";
 import * as fs from "fs";
 import * as moment from "moment";
+import { Server } from "net";
 import * as log from "winston";
 import * as lib from "./testlib";
-import { config, loadLibraries, reloadConfig, reloadServiceFile } from "./utils";
+import { config, getReaderForUri, loadLibraries, reloadConfig, reloadServiceFile } from "./utils";
 
 const app = express();
 const contextData = {};
@@ -19,10 +20,17 @@ reloadConfig();
 configureLogs();
 loadLibraries();
 
-const service = reloadServiceFile(config.serviceDescriptor || "./data/service.json");
-processService(service as Service);
+let server: Server | null = null;
 
-const server = app.listen(config.port, () => log.info(`Listening ${config.port}`));
+(async () => {
+  const service = await reloadServiceFile(config.serviceDescriptor || "./data/service.json");
+  if (service !== null) {
+    await processService(service as Service);
+    server = app.listen(config.port, () => log.info(`Listening ${config.port}`));
+  } else {
+    log.error(`Could not start server: failed to load the service descriptor file.`);
+  }
+})();
 
 // tslint:disable:interface-name
 interface MethodDef {
@@ -57,17 +65,21 @@ function configureLogs() {
 function installSpecialCommands() {
   app.get("/_stop", (req, res) => {
     res.json({ success: true, time: moment().toISOString() });
-    server.close(() => log.info(`Server stopped at ${moment()}`));
+    if (server) {
+      server.close(() => log.info(`Server stopped at ${moment()}`));
+    } else {
+      log.error("The server is not currently active.");
+    }
   });
 
-  app.get("/_reload", (req, res) => {
-    const s = reloadServiceFile(config.serviceDescriptor || "./data/service.json");
-    processService(s as Service);
+  app.get("/_reload", async (req, res) => {
+    const s = await reloadServiceFile(config.serviceDescriptor || "./data/service.json");
+    await processService(s as Service);
     res.json({ success: true });
   });
 }
 
-function processService(services: Service) {
+async function processService(services: Service) {
   const router = express.Router();
 
   for (const svc of Object.keys(services)) {
@@ -75,14 +87,14 @@ function processService(services: Service) {
       const svcItem = services[svc];
 
       switch (method.toLowerCase()) {
-        case "get": router.get(svc, getServiceHandler(svcItem[method])); break;
-        case "post": router.post(svc, getServiceHandler(svcItem[method])); break;
-        case "put": router.put(svc, getServiceHandler(svcItem[method])); break;
-        case "delete": router.delete(svc, getServiceHandler(svcItem[method])); break;
-        case "patch": router.patch(svc, getServiceHandler(svcItem[method])); break;
-        case "options": router.options(svc, getServiceHandler(svcItem[method])); break;
-        case "head": router.head(svc, getServiceHandler(svcItem[method])); break;
-        case "*": router.all(svc, getServiceHandler(svcItem[method])); break;
+        case "get": router.get(svc, await getServiceHandler(svcItem[method])); break;
+        case "post": router.post(svc, await getServiceHandler(svcItem[method])); break;
+        case "put": router.put(svc, await getServiceHandler(svcItem[method])); break;
+        case "delete": router.delete(svc, await getServiceHandler(svcItem[method])); break;
+        case "patch": router.patch(svc, await getServiceHandler(svcItem[method])); break;
+        case "options": router.options(svc, await getServiceHandler(svcItem[method])); break;
+        case "head": router.head(svc, await getServiceHandler(svcItem[method])); break;
+        case "*": router.all(svc, await getServiceHandler(svcItem[method])); break;
         default:
           log.error(`Could not register service - unsupported HTTP method: ${method}`);
           continue; // so that we don't log the success.
@@ -94,8 +106,8 @@ function processService(services: Service) {
   }
 }
 
-function getServiceHandler(plainMdef: MethodDef): RequestHandler {
-  return (req: express.Request, res: express.Response) => {
+async function getServiceHandler(plainMdef: MethodDef): Promise<RequestHandler> {
+  return async (req: express.Request, res: express.Response) => {
     const context = {
       data: contextData,
       req, // short form
@@ -110,7 +122,7 @@ function getServiceHandler(plainMdef: MethodDef): RequestHandler {
     global.res = res;
     global.data = contextData;
 
-    const mdef = interpolateJSON(plainMdef, context) as MethodDef;
+    const mdef = await interpolateJSON(plainMdef, context) as MethodDef;
 
     if (mdef.condition) {
       log.warn("The 'condition' is not yet supported in this version.");
@@ -125,7 +137,7 @@ function getServiceHandler(plainMdef: MethodDef): RequestHandler {
     }
 
     if (mdef.response) {
-      responseHandler(mdef, context);
+      await responseHandler(mdef, context);
     } else if (mdef.redirect) {
       redirectHandler(mdef, context);
     } else if (mdef.errorResponse) {
@@ -146,16 +158,16 @@ function interpolateHtml(html: string, context: object): string {
   return interpolateStringValue(html, context);
 }
 
-function interpolateJSON(json: string | object, context: object): any {
+async function interpolateJSON(json: string | object, context: object): Promise<any> {
   const jsonData = typeof(json) === "object" ? json : JSON.parse(json);
 
-  let resultingObject = {};
+  let resultingObject: {[key: string]: any} = {};
 
   for (const key of Object.keys(jsonData)) {
     if (key.match(/^\$/)) {
-      resultingObject = processCommand(key, jsonData[key], context);
+      resultingObject = await processCommand(key, jsonData[key], context);
     } else if (typeof jsonData[key] === "object") {
-      resultingObject[key] = interpolateJSON(JSON.stringify(jsonData[key]), context);
+      resultingObject[key] = await interpolateJSON(JSON.stringify(jsonData[key]), context);
     } else if (typeof jsonData[key] === "string") {
       resultingObject[key] = interpolateStringValue(jsonData[key], context);
     } else {
@@ -168,12 +180,18 @@ function interpolateJSON(json: string | object, context: object): any {
 
 function populateHeaders(mdef: MethodDef, context: any) {
   const res: express.Response = context.res;
+  if (mdef.headers === undefined) { throw new Error("Unexpected Error: missing headers in method definition"); }
+
   Object.keys(mdef.headers).forEach((hdr) => {
-    res.set(hdr, mdef.headers[hdr]);
+    if (mdef.headers !== undefined) {
+      res.set(hdr, mdef.headers[hdr]);
+    }
   });
 }
 
-function responseHandler(mdef: MethodDef, context: any) {
+async function responseHandler(mdef: MethodDef, context: any) {
+  if (mdef.response === undefined) { throw new Error(`Unexpected Error: response is undefined.`); }
+
   const file = mdef.response;
 
   const interpolatedFile = interpolateStringValue(file, context);
@@ -184,13 +202,14 @@ function responseHandler(mdef: MethodDef, context: any) {
      return;
   }
 
-  const data = fs.readFileSync(interpolatedFile, { encoding: "utf-8" });
+  const rdr = getReaderForUri(interpolatedFile);
+  const data = await rdr.readFile(interpolatedFile);
 
   if (interpolatedFile.match(/\.html$/i)) {
     const html = interpolateHtml(data, context);
     context.res.end(html);
   } else if (interpolatedFile.match(/\.json$/i)) {
-    const json = interpolateJSON(data, context);
+    const json = await interpolateJSON(data, context);
     context.res.json(json);
   }
 }
@@ -240,7 +259,7 @@ function executeJsExpression(exp: string, context: object): any {
   return result;
 }
 
-function processCommand(command: string, innerJson: any, context: object): any {
+async function processCommand(command: string, innerJson: any, context: object): Promise<any> {
   if (command === "$array") {
     return processArrayCommand(innerJson, context);
   } else if (command === "$exec") {
@@ -258,7 +277,7 @@ interface ArrayDescriptor {
   element: any;
 }
 
-function processArrayCommand(innerJson: any, context: object): any {
+async function processArrayCommand(innerJson: any, context: object): Promise<any> {
   if (typeof innerJson !== "object") { throw Error(`expected object for $array value`); }
 
   const arrayDescriptor = innerJson as ArrayDescriptor;
@@ -269,7 +288,7 @@ function processArrayCommand(innerJson: any, context: object): any {
 
   for (let i = 0; i < arrayDescriptor.count; i++) {
     if (typeof arrayDescriptor.element === "object") {
-      const elemValue = interpolateJSON(JSON.stringify(arrayDescriptor.element), {...context, i});
+      const elemValue = await interpolateJSON(JSON.stringify(arrayDescriptor.element), {...context, i});
       result.push(elemValue);
     } else if (typeof arrayDescriptor.element === "string") {
       const elemValue = interpolateStringValue(arrayDescriptor.element, {...context, i});
@@ -297,37 +316,42 @@ interface CsvDescriptor {
   delimiter?: string;
 }
 
-function processCsvCommand(innerJson: any, context: object): any {
+async function processCsvCommand(innerJson: any, context: object): Promise<any> {
   if (typeof innerJson !== "object") { throw Error(`expected object describing CSV descriptor`); }
 
   const csvDesc = innerJson as CsvDescriptor;
-  const content = fs.readFileSync(csvDesc.file, { encoding: "utf-8" });
+  const rdr = getReaderForUri(csvDesc.file);
+  const content = await rdr.readFile(csvDesc.file);
   const delimiter = csvDesc.delimiter || ",";
   const lines = content.split("\n");
   let headers = csvDesc.headers || [];
   const results = [];
+  let lineno = 0;
 
-  lines.forEach((line, lineno) => {
+  for (const line of lines) {
     if (csvDesc.firstLineHeader && lineno === 0) {
       headers = line.split(delimiter);
+      lineno++;
       return;
     }
 
+    lineno++;
+
     const cols = line.split(delimiter);
-    const col = {};
+    const col: {[key: string]: string} = {};
     headers.forEach((hdr, i) => col[hdr] = cols[i]);
 
-    const processedElement = () => {
+    const processedElement = async () => {
       if (typeof(csvDesc.element) === "string") {
         return interpolateStringValue(csvDesc.element, {...context, lineno, cols, col});
       } else if (typeof(csvDesc.element) === "object") {
-        return interpolateJSON(csvDesc.element, {...context, lineno, cols, col});
+        return await interpolateJSON(csvDesc.element, {...context, lineno, cols, col});
       } else {
         return csvDesc.element;
       }
     };
-    results.push(processedElement);
-  });
+    results.push(await processedElement);
+  }
 
   return results;
 }
