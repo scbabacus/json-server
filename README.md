@@ -274,7 +274,7 @@ Used to repeatedly create an array of supplied element template.
 The element template can include dynamic expressions as same as that applies with the JSON templates. A special variable `ctx.i` is available in the context for the element template, which contains the current iteration number.
 
 #### $exec directive
-Used to execute a Javascript statement without generating values in any outputs.
+Used to execute a Javascript statement without generating values in any outputs to the target field.
 
 > Note: You do not use string interpolation marker `${...}` for a statement provided to `$exec`
 
