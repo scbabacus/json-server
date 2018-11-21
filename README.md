@@ -325,14 +325,15 @@ For example, in `config.json` you may use:
 ```
 
 ## The Test Library API Reference
-Utilities that are commonly required for convenience in creating mock API are preloaded by default. This bundle of utilities can be accessed under `lib` namespace. They can be used in any expressions evaluation on both service definition file and the template files.
+Utilities that are commonly required for convenience in creating mock API are preloaded by default. This bundle of utilities can be accessed under `lib` namespace. They can be used in any expression evaluations on both service definition file and the template files.
 
 ### lib.condition()
 Use as an expression in place of `if` statement. Condition returns the `then` evaluation if the `condition` is true. Otherwise, it returns the result of `else` evaluation.
+> Note: The `if` and the conditional expression in Javascript can also be used. This interface is just provided for convenience.
 #### Declaration:
 `lib.condition(condition: boolean, then: () => any, else: () => any): any`
 
-### example
+#### example
 ```json
 {
   "days": "${lib.condition(ctx.days > 30, () => days - 10, () => days + 20)}"
@@ -340,7 +341,45 @@ Use as an expression in place of `if` statement. Condition returns the `then` ev
 ```
 
 ### lib.randomDigits()
-Returns a random number as string for the given number of digits. Useful for generating random fix-length string IDs.
+Returns a random number or letters in the given character class as string for the given number of digits. Useful for generating random fix-length string IDs.
 
-### Declaration:
-`lib.randomDigits(len: number = 8): string`
+#### Declaration
+`lib.randomDigits(len: number = 8, charClass: string = lib.CC_NUMBERS): string`
+
+#### Parameters
+- `len` **optional** number of digits to be returned
+- `charClass` **optional** string of available characters to pick at random
+  - The library has provided constant strings for mostly used character classes
+    - `lib.CC_ALPHANUM` for Alphanumeric (numbers and capital letters, 0-9 A-Z)
+    - `lib.CC_MIX_ALPHANUM` for Alphanumeric with mixed character cases (0-9 A-Z a-z)
+    - `lib.CC_NUMBERS` for numeric digits (0-9)
+    - `lib.CC_CAPITALS` for capital letters (A-Z)
+    - `lib.CC_LOWERCASES` for lowercase letters (a-z)
+    - You can also use them in mix, for example `lib.CC_LOWERCASES + lib.CC_CAPITALS`.
+
+#### Example
+```json
+{
+  "username": "${lib.randomDigits(lib.randomNumber(15,3), lib.CC_CAPITALS)}", 
+  "password": "${lib.randomDigits(16, lib.CC_MIX_ALPHANUM + '!@#$%^&*()_-+=\\/.\\'\"<>?{}[]')"
+}
+```  
+
+### lib.randomNumber
+Returns the random number in the range of the given [max, min] inclusive.
+
+#### Declaration
+`lib.randomNumber(max: number = 100, min: number = 0)`
+
+#### Parameters
+- `max` **optional** maximum possible number to return, inclusive. Default to 100
+- `min` **optional** minimum possible number to return, inclusive. Default to 0
+
+#### Example
+```json
+{
+  "price": "USD ${lib.randomNumber(100)}",
+  "height": "${lib.randomNumber(210, 140)} cm"
+}
+```
+
