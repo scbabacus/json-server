@@ -1,14 +1,29 @@
 {
-  "name": "json-server",
-  "version": "1.0.0",
-  "description": "",
+  "name": "tiam",
+  "version": "0.1.0",
+  "description": "Create or mock REST API quickly using dynamic JSON template.",
+  "keywords": [
+    "mock",
+    "json",
+    "template",
+    "api",
+    "stub",
+    "test"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/scbabacus/tiem.git"
+  },
   "main": "index.ts",
   "scripts": {
     "start": "ts-node src",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "Pongthai Chandpoung",
   "license": "ISC",
+  "bin": {
+    "tiam": "./dist/index.js"
+  },
   "dependencies": {
     "aws-sdk": "^2.360.0",
     "body-parser": "^1.18.3",

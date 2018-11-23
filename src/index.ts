@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import * as bodyParser from "body-parser";
 import { exec } from "child_process";
 import * as express from "express";
