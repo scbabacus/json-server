@@ -12,15 +12,19 @@ Tiam enables you to quickly provide a mockup server that serves RESTful protocol
 - [Support of S3 Hosted Files](#support-of-s3-hosted-files)
 - [The Test Library API Reference](#the-test-library-api-reference)
 ## Running the Tiam server
-- Ensure you have `ts-node` installed. issue `npm install -g ts-node` before advancing to the next step.
-
-```
-sudo npm install -g ts-node 
-npm install
-npm start
+``` 
+npm install -g tiam
+tiam
 ```
 ## Configure the server using config.json
-To configure the Tiam server, write or modify the `config.json` file.
+To configure the Tiam server, write or modify the `config.json` file. You can specify the path for
+your configuration file using the `--config` parameter
+
+```bash
+tiam --config /path/to/config.json
+```
+
+The `config.json` file example:
 ```json
 {
   "port": "port number for the server to serve",

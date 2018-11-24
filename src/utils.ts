@@ -16,9 +16,24 @@ export let config: IJsonServerConfig = {
   serviceDescriptor: "./data/service.json",
 };
 
-export function reloadConfig() {
+export function parseParams(args: string[]): {[param: string]: string | null} {
+  const params: {[key: string]: string | null} = {};
+
+  args.forEach((arg, i) => {
+    const matches = arg.match(/^\-\-(.*)/);
+    if (matches) {
+      const argName = matches[1];
+      const argValue = i < args.length - 1 ? args[i + 1] : null;
+      params[argName] = argValue;
+    }
+  });
+
+  return params;
+}
+
+export function reloadConfig(configPath: string) {
   try {
-    const loadedConfig = JSON.parse(readFileSync("./config.json").toString("utf-8"));
+    const loadedConfig = JSON.parse(readFileSync(configPath).toString("utf-8"));
     config = loadedConfig;
     log.verbose(`Configuration loaded.`);
   } catch (ex) {
