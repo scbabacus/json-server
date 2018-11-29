@@ -26,6 +26,8 @@ reloadConfig(configPath);
 configureLogs();
 loadLibraries();
 
+config.port = params.port || config.port || "80";
+
 let server: Server | null = null;
 
 (async () => {
