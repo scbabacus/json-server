@@ -34,6 +34,7 @@ let server: Server | null = null;
   const service = await reloadServiceFile(config.serviceDescriptor || "./data/service.json");
   if (service !== null) {
     await processService(service as Service);
+    if (!config.noDefaultIndex) { tryMountIndexPage(app, service as Service); }
     server = app.listen(config.port, () => log.info(`Listening ${config.port}`));
   } else {
     log.error(`Could not start server: failed to load the service descriptor file.`);
@@ -85,6 +86,24 @@ function installSpecialCommands() {
     await processService(s as Service);
     res.json({ success: true });
   });
+}
+
+function tryMountIndexPage(theApp: express.Application, service: Service) {
+  if (service["/"] === undefined) {
+
+    let indexPage: string | null = null;
+    if (fs.existsSync("./index.html")) {
+      indexPage = fs.readFileSync("./index.html", {encoding: "utf-8"});
+    } else if (fs.existsSync("./dist/index.html")) {
+      indexPage = fs.readFileSync("./dist/index.html", {encoding: "utf-8"});
+    }
+
+    theApp.get("/", (req, res) => {
+      res.set("Content-type", "Text/html");
+      res.end(indexPage);
+    });
+
+  }
 }
 
 async function processService(services: Service) {

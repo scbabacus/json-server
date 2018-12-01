@@ -8,10 +8,12 @@ interface IJsonServerConfig {
   imports: { [aliasName: string]: string };
   port: string;
   serviceDescriptor: string;
+  noDefaultIndex?: boolean;
 }
 
 export let config: IJsonServerConfig = {
   imports: {},
+  noDefaultIndex: false,
   port: "8080",
   serviceDescriptor: "./data/service.json",
 };
