@@ -215,9 +215,6 @@ From the example above, the `condition` is provided such that the given method d
 
 > Note that giving an array of more than one method definitions does not make sense when all method definitions do not define `condition`. Doing so, only the first defition will always be excuted.
 
-Look at the array of method definition as an *if-elseif-else* statement.
-
-
 #### headers
 Define response headers
 
