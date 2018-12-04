@@ -43,7 +43,7 @@ let server: Server | null = null;
 
 // tslint:disable:interface-name
 interface MethodDef {
-  condition?: string; // String expression (starts with $) returning boolean value
+  condition?: string; // String expression returning boolean value
   processExpressions?: boolean; // whether to interpolate the results
   headers?: { // response headers
     [header: string]: string, // can be expression
@@ -58,7 +58,7 @@ interface MethodDef {
 
 interface Service {
   [servicePath: string]: {
-    [method: string]: MethodDef,
+    [method: string]: MethodDef | MethodDef[],
   };
 }
 
@@ -112,16 +112,18 @@ async function processService(services: Service) {
   for (const svc of Object.keys(services)) {
     for (const method of Object.keys(services[svc])) {
       const svcItem = services[svc];
+      const methods: MethodDef[] = Array.isArray(svcItem[method]) ? svcItem[method] as MethodDef[]
+        : [svcItem[method] as MethodDef];
 
       switch (method.toLowerCase()) {
-        case "get": router.get(svc, await getServiceHandler(svcItem[method])); break;
-        case "post": router.post(svc, await getServiceHandler(svcItem[method])); break;
-        case "put": router.put(svc, await getServiceHandler(svcItem[method])); break;
-        case "delete": router.delete(svc, await getServiceHandler(svcItem[method])); break;
-        case "patch": router.patch(svc, await getServiceHandler(svcItem[method])); break;
-        case "options": router.options(svc, await getServiceHandler(svcItem[method])); break;
-        case "head": router.head(svc, await getServiceHandler(svcItem[method])); break;
-        case "*": router.all(svc, await getServiceHandler(svcItem[method])); break;
+        case "get": router.get(svc, await getServiceHandler(methods)); break;
+        case "post": router.post(svc, await getServiceHandler(methods)); break;
+        case "put": router.put(svc, await getServiceHandler(methods)); break;
+        case "delete": router.delete(svc, await getServiceHandler(methods)); break;
+        case "patch": router.patch(svc, await getServiceHandler(methods)); break;
+        case "options": router.options(svc, await getServiceHandler(methods)); break;
+        case "head": router.head(svc, await getServiceHandler(methods)); break;
+        case "*": router.all(svc, await getServiceHandler(methods)); break;
         default:
           log.error(`Could not register service - unsupported HTTP method: ${method}`);
           continue; // so that we don't log the success.
@@ -133,7 +135,7 @@ async function processService(services: Service) {
   }
 }
 
-async function getServiceHandler(plainMdef: MethodDef): Promise<RequestHandler> {
+async function getServiceHandler(plainMdef: MethodDef[]): Promise<RequestHandler> {
   return async (req: express.Request, res: express.Response) => {
     const context = {
       data: contextData,
@@ -143,6 +145,13 @@ async function getServiceHandler(plainMdef: MethodDef): Promise<RequestHandler> 
       response: res,
     };
 
+    const matchedMDef = getFirstMDefThatConditionEvaluatesToTrue(plainMdef, context);
+
+    if (!matchedMDef) {
+      res.sendStatus(404);
+      return;
+    }
+
     global.request = req;
     global.response = res;
     global.req = req;
@@ -150,10 +159,6 @@ async function getServiceHandler(plainMdef: MethodDef): Promise<RequestHandler> 
     global.data = contextData;
 
     const mdef = await interpolateJSON(plainMdef, context) as MethodDef;
-
-    if (mdef.condition) {
-      log.warn("The 'condition' is not yet supported in this version.");
-    }
 
     if (mdef.preScript) {
       executeJsExpression(mdef.preScript, context);
@@ -179,6 +184,17 @@ async function getServiceHandler(plainMdef: MethodDef): Promise<RequestHandler> 
       executeJsExpression(mdef.postScript, context);
     }
   };
+}
+
+function getFirstMDefThatConditionEvaluatesToTrue(mdefArray: MethodDef[], context: object): MethodDef | undefined {
+  return mdefArray.find((methodDef, idx, all) => {
+    if (methodDef.condition !== undefined) {
+      const matched = executeJsExpression(methodDef.condition, context) as boolean;
+      return matched;
+    } else {
+      return true;
+    }
+  });
 }
 
 function interpolateHtml(html: string, context: object): string {

@@ -182,7 +182,7 @@ Respond with the given text
 You may use javascript expression in textResponse. See [javascript expression](#javascript-expression) for more details.
 
 #### condition
-Only use this particular definition if the condition is met, i.e. the expression returns `true` or javascript truthly value.
+Only use this particular method definition if the condition is met, i.e. the expression returns `true` or a javascript truthly value. Otherwise, return 404 or the other method definition that has its condition matched. In the latter case, an array of method definitions has to be given instead of an method definition content.
 
 ```json
 {
@@ -192,6 +192,31 @@ Only use this particular definition if the condition is met, i.e. the expression
   }
 }
 ```
+From the example above, if the user ID does not equal 2931, a 404 error returns.
+
+```json
+{
+  "GET": [
+    {
+      "condition": "ctx.request.params.userType === 'individual'",
+      "response": "./data/individual.json"
+    },
+    {
+      "condition": "ctx.request.params.userType === 'juristic'",
+      "response": "./data/juristic.json"
+    },
+    {
+      "response": "./data/default.json"
+    }
+  ]
+}
+```
+From the example above, the `condition` is provided such that the given method definition would handle the matched case. The last definition, however, does not provide a condition. In such case the server assumes the `true` condition. The evaluation starts from the first element of the method defition array. The first method definition that either not have condition or having the condition returns true, will be used. Others will be neclected for the particular request.
+
+> Note that giving an array of more than one method definitions does not make sense when all method definitions do not define `condition`. Doing so, only the first defition will always be excuted.
+
+Look at the array of method definition as an *if-elseif-else* statement.
+
 
 #### headers
 Define response headers
