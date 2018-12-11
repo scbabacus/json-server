@@ -1,8 +1,8 @@
-# TIAM - THE API SERVER MOCKUP TOOL
-Tiam enables you to quickly provide a mockup server that serves RESTful protocols. You write the API in `service.json` and then provide corresponding responses for each API there. The responses can be read from `.json` files, `.html` files, `.txt`, or even provided as a string. You can write Javascript expressions in the `.json` or `.html` files as well to create a template that could provide dynamic responses.
+# JSONSVR - THE API SERVER MOCKUP TOOL
+JSONSVR enables you to quickly provide a mockup server that serves RESTful protocols. You write the API in `service.json` and then provide corresponding responses for each API there. The responses can be read from `.json` files, `.html` files, `.txt`, or even provided as a string. You can write Javascript expressions in the `.json` or `.html` files as well to create a template that could provide dynamic responses.
 
 ## Content
-- [Running the Tiam server](#running-the-tiam-server)
+- [Running the JSON server](#running-the-json-server)
 - [Configure the server using config.json](#configure-the-server-using-config.json)
 - [Writing service.json](#writing-service.json)
 - [API Definition](#api-definition)
@@ -11,17 +11,17 @@ Tiam enables you to quickly provide a mockup server that serves RESTful protocol
 - [HTML template](#html-template)
 - [Support of S3 Hosted Files](#support-of-s3-hosted-files)
 - [The Test Library API Reference](#the-test-library-api-reference)
-## Running the Tiam server
+## Running the JSON server
 ``` 
-npm install -g tiam
-tiam
+npm install -g jsonsvr
+jsonsvr
 ```
 ## Configure the server using config.json
-To configure the Tiam server, write or modify the `config.json` file. You can specify the path for
+To configure the JSON server, write or modify the `config.json` file. You can specify the path for
 your configuration file using the `--config` parameter
 
 ```bash
-tiam --config /path/to/config.json
+jsonsvr --config /path/to/config.json
 ```
 
 The `config.json` file example:
@@ -99,7 +99,7 @@ To define an API, use the *route path* as a key. Under the route path key, defin
 }
 ```
 
-The route path may contain parameters. Tiam server uses the path parameter syntax used in express.js, which uses a colon-leaded parameter names within the route path. The parameter can later be accessed in the scripts using `ctx.request.params.<parameter>`
+The route path may contain parameters. JSON server uses the path parameter syntax used in express.js, which uses a colon-leaded parameter names within the route path. The parameter can later be accessed in the scripts using `ctx.request.params.<parameter>`
 
 ```json
 {
@@ -275,7 +275,7 @@ The following is an example of how expressions can be used:
 > Note: If the expression spans an entire string value, the type of result will be that of the result of the expression. For example, if your expression returns a number, the property value will be a number. If you need the expression that returns numeric (or other primitive types such as boolean, null, or undefined) to be represented as a string, use the `String(...)` function. For example, `"values": "${String(true)}"` would be interpolated to `"values": "true"`, while the `"values":"${true}"` results in `"value": true`.
 
 ## JSON template
-The JSON files you defined in the `service.json` file as the values to the `response` property are JSON templates. A JSON template can be a static content, having no expressions or directives, or dynamic, with expressions and/or directives within them. The dynamic generation of JSON file according to the template is a powerful feature of Tiam server, which enables you to generate test cases that work for you.
+The JSON files you defined in the `service.json` file as the values to the `response` property are JSON templates. A JSON template can be a static content, having no expressions or directives, or dynamic, with expressions and/or directives within them. The dynamic generation of JSON file according to the template is a powerful feature of JSON server, which enables you to generate test cases that work for you.
 
 ### Use of Variables in Javascript Expressions
 
@@ -286,7 +286,7 @@ The context variable can be accessed in the expression as a `ctx` variable. Ther
 - `ctx.data` represents the globally accessible data where you can declare variables to use with the other  APIs.
 
 ### JSON Directives
-In JSON templates, you can use **Tiam Server directive** to control the fields. The JSON directive is described as a JSON object literal with the key (property name) beginning with a dollar sign (`$`) denoting the command.
+In JSON templates, you can use **JSON Server directive** to control the fields. The JSON directive is described as a JSON object literal with the key (property name) beginning with a dollar sign (`$`) denoting the command.
 
 #### $array directive
 Used to create an array of repeating element based on the given template. 
@@ -368,13 +368,13 @@ Conditionally return the element defined in `then` property if the `condition` i
     }
 }
 ```
-> Note: Unlike the full-fleged languages, JSON-server DSL does not defer the evaluation of `then` statements to when the condition is true, as well as for an `else` when the condition evalues to false. Tiam server pre-evaluates the entire JSON structure before directive evaluation so all expressions are evaluated regardless of the `condition` resulting value.
+> Note: Unlike the full-fleged languages, JSON-server DSL does not defer the evaluation of `then` statements to when the condition is true, as well as for an `else` when the condition evalues to false. JSON server pre-evaluates the entire JSON structure before directive evaluation so all expressions are evaluated regardless of the `condition` resulting value.
 
 ## HTML template
 The current version does not support dynamic HTML content generation.
 
 ## Support of S3 Hosted Files
-Tiam Server supports AWS S3 hosted files in most of the configuration and descriptors that require file path. To refer to S3 stored content, simply use `s3://` URI scheme in place of the path.
+JSON Server supports AWS S3 hosted files in most of the configuration and descriptors that require file path. To refer to S3 stored content, simply use `s3://` URI scheme in place of the path.
 
 For example, in `config.json` you may use:
 ```json

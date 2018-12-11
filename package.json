@@ -1,5 +1,5 @@
 {
-  "name": "tiam",
+  "name": "jsonsvr",
   "version": "0.1.0",
   "description": "Create or mock REST API quickly using dynamic JSON template.",
   "keywords": [
@@ -22,7 +22,7 @@
   "author": "Pongthai Chandpoung",
   "license": "ISC",
   "bin": {
-    "tiam": "./dist/index.js"
+    "jsonsvr": "./dist/index.js"
   },
   "dependencies": {
     "aws-sdk": "^2.360.0",
