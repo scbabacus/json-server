@@ -129,7 +129,7 @@ function tryMountIndexPage(theApp: express.Application, service: Service) {
 async function processService(services: Service) {
   const router = express.Router();
 
-  for (const svc of Object.keys(services)) {
+  for (const svc of Object.keys(services).filter((route) => !route.match(/^\$/))) {
     for (const method of Object.keys(services[svc])) {
       const svcItem = services[svc];
       const methods: MethodDef[] = Array.isArray(svcItem[method]) ? svcItem[method] as MethodDef[]
