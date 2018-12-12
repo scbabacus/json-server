@@ -3,8 +3,8 @@ JSONSVR enables you to quickly provide a mockup server that serves RESTful proto
 
 ## Content
 - [Running the JSON server](#running-the-json-server)
-- [Configure the server using config.json](#configure-the-server-using-config.json)
-- [Writing service.json](#writing-service.json)
+- [Configure the server using config.json](#configure-the-server-using-configjson)
+- [Writing service.json](#writing-servicejson)
 - [API Definition](#api-definition)
 - [JavaScript Expressions](#javascript-expression)
 - [JSON template](#json-template)
