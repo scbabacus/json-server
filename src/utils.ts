@@ -111,13 +111,5 @@ function executeServiceInitializer(serviceDef: any) {
     data: global.data,
   };
 
-  let initializers: string[] = [];
-
-  if (typeof(serviceDef.$init) === "string") {
-    initializers = [serviceDef.$init];
-  } else if (Array.isArray(serviceDef.$init)) {
-    initializers = serviceDef.$init;
-  }
-
-  initializers.forEach((stmt) => executeJsStatement(stmt, ctx));
+  executeJsStatement(serviceDef.$init, ctx);
 }

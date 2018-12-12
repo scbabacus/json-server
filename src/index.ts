@@ -369,9 +369,11 @@ async function processArrayCommand(innerJson: any, context: object): Promise<any
 }
 
 async function processExecCommand(innerJson: any, context: object): Promise<any> {
-  if (typeof innerJson !== "string") { throw Error(`expected string for $exec value`); }
+  if (typeof innerJson !== "string" || Array.isArray(innerJson)) {
+    throw Error(`expected string or string array for $exec value`);
+  }
 
-  executeJsExpression(innerJson, context);
+  executeJsStatement(innerJson, context);
   return undefined; // such that the key is removed from the resulting object.
 }
 

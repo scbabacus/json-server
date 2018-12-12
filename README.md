@@ -253,6 +253,7 @@ Provide Javascript to run before response is sent. The script is provided as a `
   }
 }
 ```
+PreScript supports mutilple statements using array.
 
 #### postScript
 Provide Javascript to run after the response is sent. The script is provided as a `string`.
@@ -269,6 +270,8 @@ Provide Javascript to run after the response is sent. The script is provided as 
   }
 }
 ```
+PostScript supports mutilple statements using array.
+
 ### Initialization Script
 There are cases when initialization has to take place in order to prepare environments -- e.g. data structures -- for further usages. Such situations can be written as an `$init` script in the service descriptor file.
 
@@ -313,7 +316,11 @@ The JSON files you defined in the `service.json` file as the values to the `resp
 ### The Context variable
 The context variable can be accessed in the expression as a `ctx` variable. There are useful properties of this context variable that you can use. They are:
 
-- `ctx.request` represents the current request. It is a Request instance from `expressjs` framework.
+- `ctx.req` represents the current request. It is a Request instance from `expressjs` framework. Interesting properties are:
+  - `ctx.req.body` provides the parsed body value. If the Content-type is `application/json` then the body is a Javascript object represents that JSON. If the Content-type is `form-data`, the body is key-value pair of param and value.
+  - `ctx.req.headers` provides the HTTP request headers in key-value pairs.
+  - `ctx.req.params` provides the named URI component in the route. For example, `/api/users/:username` route will have `ctx.req.params.username` be that third element of the route.
+  - `ctx.req.query` provides the key-value pairs of the parsed query strings from the URI.
 - `ctx.data` represents the globally accessible data where you can declare variables to use with the other  APIs.
 
 ### JSON Directives
@@ -339,9 +346,7 @@ The element template can include dynamic expressions as same as that applies wit
 - `element` The element template.
 
 #### $exec directive
-Used to execute a Javascript statement without generating values in any outputs to the target field.
-
-> Note: You do not use string interpolation marker `${...}` for a statement provided to `$exec`
+Used to execute a Javascript statements without generating values in any outputs to the target field.
 
 For example, for this json template:
 ```json
@@ -353,6 +358,17 @@ Generates the output as:
 
 ```json
 {}
+```
+
+For multiple statements, use array.
+
+```json
+{
+  "field": { "$exec": [
+    "ctx.data.today = moment()",
+    "ctx.data.tomorrow = ctx.data.today.add(1, 'days')"
+  ]}
+}
 ```
 
 #### $csv directive

@@ -13,10 +13,19 @@ export function executeJsExpression(exp: string, context: object): any {
   return result;
 }
 
-export function executeJsStatement(stmt: string, context: object) {
-  const f = new Function("ctx", stmt);
-  f(context);
+export function executeJsStatement(stmt: string | string[], context: object) {
+  const stmts = Array.isArray(stmt) ? stmt : [stmt];
 
-  log.debug(`Statement executed = ${stmt}`);
-  log.debug(`ctx.data            = ${JSON.stringify(global.data, null, 2)}`);
+  stmts.forEach((statement) => {
+    if (typeof(statement) !== "string") {
+      log.warn(`Invalid statement: ${statement}`);
+      return;
+    }
+
+    const f = new Function("ctx", statement);
+    f(context);
+
+    log.debug(`Statement executed = ${stmt}`);
+    log.debug(`ctx.data            = ${JSON.stringify(global.data, null, 2)}`);
+  });
 }
