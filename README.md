@@ -14,11 +14,14 @@ JSONSVR enables you to quickly provide a mockup server that serves RESTful proto
 ## Running the JSON server
 ``` 
 npm install -g jsonsvr
+jsonsvr --init
 jsonsvr
 ```
 ## Configure the server using config.json
-To configure the JSON server, write or modify the `config.json` file. You can specify the path for
-your configuration file using the `--config` parameter
+To configure the JSON server, write or modify the `config.json` file. You can pull the
+bootstraping `config.json` file using the `jsonsvr --init` command.
+
+You may specify the path for your configuration file using the `--config` parameter. 
 
 ```bash
 jsonsvr --config /path/to/config.json
@@ -67,10 +70,12 @@ in `orders.json`:
 > Note: You'll need to issue `npm install <module>` to install external modules before being able to import them to the service.
 
 ### serviceDescriptor
-You may specify the location of the service descriptor file using the `serviceDescriptor` configuration parameter. The content of this parameter can be
+You may specify the location of the service descriptor file using the `serviceDescriptor` configuration parameter in `config.json` file. The content of this parameter can be
 - An absolute path on local machine
 - A relative path against the current working directory
 - A URI describing S3 object (see [S3 Support](#support-of-s3-hosted-files) for more detail)
+
+The bootstraping template for `service.json` can be generated using the `jsonsvr --init` command.
 
 ### noDefaultIndexPage
 By default, the server will be started with the root path `/` being a documentation page (this document) if the root path was not defined in `service.json` file. You can disable this behavior by setting the `noDefaultIndexPage` to `true`, in which the server will return 404-Not Found.  
