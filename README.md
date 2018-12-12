@@ -4,7 +4,7 @@ JSONSVR enables you to quickly provide a mockup server that serves RESTful proto
 ## Content
 - [Running the JSON server](#running-the-json-server)
 - [Configure the server using config.json](#configure-the-server-using-config.json)
-- [Writing service.json](#writing-service.json)
+- [Writing service.json](#writing-service-json)
 - [API Definition](#api-definition)
 - [JavaScript Expressions](#javascript-expression)
 - [JSON template](#json-template)
@@ -32,7 +32,7 @@ The `config.json` file example:
 {
   "port": "port number for the server to serve",
   "imports": {
-    "module identifier": "module name", ...
+    "module identifier": "module name"
   },
   "serviceDescriptor": "./data/service.json",
   "noDefaultIndexPage": false
@@ -108,7 +108,11 @@ The route path may contain parameters. JSON server uses the path parameter synta
 
 ```json
 {
-  "/api/users/:userId": "./data/user.json"
+  "/api/users/:userId": {
+    "GET": {
+      "response": "./data/user.json"
+    }
+  }
 }
 ```
 
