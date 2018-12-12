@@ -22,7 +22,7 @@ import { config,
 const params = parseParams(argv);
 const configPath = params.config || "./config.json";
 const init = params.init;
-const loglevel = params.debug ? "debug" : "info";
+const loglevel = params.debug !== undefined ? "debug" : "info";
 
 const app = express();
 const contextData = {};
@@ -50,7 +50,11 @@ let server: Server | null = null;
   if (service !== null) {
     await processService(service as Service);
     if (!config.noDefaultIndex) { tryMountIndexPage(app, service as Service); }
-    server = app.listen(config.port, () => log.info(`Listening ${config.port}`));
+    try {
+      server = app.listen(config.port, () => log.info(`Listening ${config.port}`));
+    } catch (err) {
+      log.error(err);
+    }
   } else {
     log.error(`Could not start server: failed to load the service descriptor file.`);
   }
@@ -152,6 +156,8 @@ async function processService(services: Service) {
 
 async function getServiceHandler(plainMdef: MethodDef[]): Promise<RequestHandler> {
   return async (req: express.Request, res: express.Response) => {
+    log.debug(`Request: '${req.url}'`);
+
     const context = {
       data: contextData,
       req, // short form
@@ -167,6 +173,8 @@ async function getServiceHandler(plainMdef: MethodDef[]): Promise<RequestHandler
       return;
     }
 
+    log.debug(`Method definition matched the request: ${JSON.stringify(matchedMDef)}`);
+
     global.request = req;
     global.response = res;
     global.req = req;
@@ -175,11 +183,13 @@ async function getServiceHandler(plainMdef: MethodDef[]): Promise<RequestHandler
 
     printDebugDump();
 
-    const mdef = await interpolateJSON(matchedMDef, context) as MethodDef;
-
-    if (mdef.preScript) {
-      executeJsExpression(mdef.preScript, context);
+    // PreScript has to be excuted before interpolation because the interpolation
+    // process in other fields usually depends on the result of preScript execution.
+    if (matchedMDef.preScript) {
+      executeJsStatement(matchedMDef.preScript, context);
     }
+
+    const mdef = await interpolateJSON(matchedMDef, context) as MethodDef;
 
     if (mdef.headers) {
       populateHeaders(mdef, context);
@@ -198,7 +208,7 @@ async function getServiceHandler(plainMdef: MethodDef[]): Promise<RequestHandler
     }
 
     if (mdef.postScript) {
-      executeJsExpression(mdef.postScript, context);
+      executeJsStatement(mdef.postScript, context);
     }
   };
 }
@@ -316,7 +326,19 @@ function executeJsExpression(exp: string, context: object): any {
   const f = new Function("ctx", functionedExpression);
   const result = f(context);
 
+  log.debug(`Expression executed = ${exp}`);
+  log.debug(`Expression result   = ${JSON.stringify(result)}`);
+  log.debug(`ctx.data            = ${JSON.stringify(global.data, null, 2)}`);
+
   return result;
+}
+
+function executeJsStatement(stmt: string, context: object) {
+  const f = new Function("ctx", stmt);
+  f(context);
+
+  log.debug(`Statement executed = ${stmt}`);
+  log.debug(`ctx.data            = ${JSON.stringify(global.data, null, 2)}`);
 }
 
 async function processCommand(command: string, innerJson: any, context: object): Promise<any> {
@@ -440,5 +462,8 @@ async function processIfCommand(innerJson: any, context: object): Promise<any> {
 function printDebugDump() {
   if (loglevel !== "debug") { return; }
   log.debug(`ctx.data = ${JSON.stringify(global.data, null, 2)}`);
-  log.debug(`ctx.req  = ${JSON.stringify(global.req, null, 2)}`);
+  log.debug(`ctx.req.headers  = ${JSON.stringify(global.req.headers, null, 2)}`);
+  log.debug(`ctx.req.params  = ${JSON.stringify(global.req.params, null, 2)}`);
+  log.debug(`ctx.req.query  = ${JSON.stringify(global.req.query, null, 2)}`);
+  log.debug(`ctx.req.body  = ${JSON.stringify(global.req.body, null, 2)}`);
 }
