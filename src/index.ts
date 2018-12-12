@@ -172,7 +172,7 @@ async function getServiceHandler(plainMdef: MethodDef[]): Promise<RequestHandler
     global.res = res;
     global.data = contextData;
 
-    const mdef = await interpolateJSON(plainMdef, context) as MethodDef;
+    const mdef = await interpolateJSON(matchedMDef, context) as MethodDef;
 
     if (mdef.preScript) {
       executeJsExpression(mdef.preScript, context);
