@@ -22,6 +22,7 @@ import { config,
 const params = parseParams(argv);
 const configPath = params.config || "./config.json";
 const init = params.init;
+const loglevel = params.debug ? "debug" : "info";
 
 const app = express();
 const contextData = {};
@@ -29,7 +30,7 @@ const contextData = {};
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-configureLogs();
+configureLogs(loglevel);
 
 if (init !== undefined) { // init is expected to be null if presented on the command line.
   runInitializer();
@@ -76,12 +77,12 @@ interface Service {
   };
 }
 
-function configureLogs() {
+function configureLogs(level: string = "info") {
   const con = new log.transports.Console({
     format: log.format.printf((info) => `${moment().toISOString()} [${info.level}] ${info.message}`),
   });
 
-  con.level = "debug";
+  con.level = level;
   log.add(con);
 }
 
@@ -171,6 +172,8 @@ async function getServiceHandler(plainMdef: MethodDef[]): Promise<RequestHandler
     global.req = req;
     global.res = res;
     global.data = contextData;
+
+    printDebugDump();
 
     const mdef = await interpolateJSON(matchedMDef, context) as MethodDef;
 
@@ -432,4 +435,10 @@ async function processIfCommand(innerJson: any, context: object): Promise<any> {
   } else {
     return innerJson.else;
   }
+}
+
+function printDebugDump() {
+  if (loglevel !== "debug") { return; }
+  log.debug(`ctx.data = ${JSON.stringify(global.data, null, 2)}`);
+  log.debug(`ctx.req  = ${JSON.stringify(global.req, null, 2)}`);
 }
