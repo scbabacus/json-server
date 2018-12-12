@@ -4,7 +4,7 @@ JSONSVR enables you to quickly provide a mockup server that serves RESTful proto
 ## Content
 - [Running the JSON server](#running-the-json-server)
 - [Configure the server using config.json](#configure-the-server-using-config.json)
-- [Writing service.json](#writing-service-json)
+- [Writing service.json](#writing-service.json)
 - [API Definition](#api-definition)
 - [JavaScript Expressions](#javascript-expression)
 - [JSON template](#json-template)
@@ -269,6 +269,28 @@ Provide Javascript to run after the response is sent. The script is provided as 
   }
 }
 ```
+### Initialization Script
+There are cases when initialization has to take place in order to prepare environments -- e.g. data structures -- for further usages. Such situations can be written as an `$init` script in the service descriptor file.
+
+For example, to initialize the `users` array:
+```json
+{
+  "$init": "ctx.data.users = []"
+}
+```
+The `$init` allows multiple statements. They can be written as an array:
+
+```json
+{
+  "$init": [
+    "ctx.data.users = []",
+    "ctx.data.sessionIndex = {}",
+    "ctx.data.count = 0"
+  ]
+}
+```
+
+The initialization script runs only when the server starts, i.e. when the `service.json` is loaded.
 
 ## Javascript Expression
 To allow dynamic generation of content or configuration, you may use javascript expression in your json values. The expression can be defined inside `${...}` directive and can be used in mixed with the string value. 

@@ -9,6 +9,7 @@ import * as moment from "moment";
 import { Server } from "net";
 import { argv } from "process";
 import * as log from "winston";
+import { executeJsExpression, executeJsStatement } from "./executor";
 import * as lib from "./testlib";
 import { config,
          getReaderForUri,
@@ -318,27 +319,6 @@ function interpolateStringValue(value: string, context: object): any {
   }
 
   return output;
-}
-
-function executeJsExpression(exp: string, context: object): any {
-  const functionedExpression = `return ${exp};`;
-
-  const f = new Function("ctx", functionedExpression);
-  const result = f(context);
-
-  log.debug(`Expression executed = ${exp}`);
-  log.debug(`Expression result   = ${JSON.stringify(result)}`);
-  log.debug(`ctx.data            = ${JSON.stringify(global.data, null, 2)}`);
-
-  return result;
-}
-
-function executeJsStatement(stmt: string, context: object) {
-  const f = new Function("ctx", stmt);
-  f(context);
-
-  log.debug(`Statement executed = ${stmt}`);
-  log.debug(`ctx.data            = ${JSON.stringify(global.data, null, 2)}`);
 }
 
 async function processCommand(command: string, innerJson: any, context: object): Promise<any> {

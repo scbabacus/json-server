@@ -1,6 +1,7 @@
 import { existsSync, readFile, readFileSync, writeFileSync } from "fs";
 import { promisify } from "util";
 import * as log from "winston";
+import { executeJsStatement } from "./executor";
 import { DefaultFileReader, IFileReader } from "./file-reader";
 import { S3Reader } from "./s3-reader";
 
@@ -72,6 +73,7 @@ export async function reloadServiceFile(serviceFilePath: string): Promise<object
     const serviceFileContent = await rdr.readFile(serviceFilePath);
     if (serviceFileContent !== null) {
       const loadedService = JSON.parse(serviceFileContent);
+      executeServiceInitializer(loadedService);
       return loadedService;
     } else {
       return null;
@@ -100,4 +102,22 @@ export function runInitializer() {
   } else {
     log.warn("./service.json exists, will not overwrite");
   }
+}
+
+function executeServiceInitializer(serviceDef: any) {
+  if (!serviceDef.$init) { return; }
+
+  const ctx = {
+    data: global.data,
+  };
+
+  let initializers: string[] = [];
+
+  if (typeof(serviceDef.$init) === "string") {
+    initializers = [serviceDef.$init];
+  } else if (Array.isArray(serviceDef.$init)) {
+    initializers = serviceDef.$init;
+  }
+
+  initializers.forEach((stmt) => executeJsStatement(stmt, ctx));
 }
