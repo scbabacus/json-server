@@ -1,4 +1,4 @@
-import { readFile, readFileSync } from "fs";
+import { existsSync, readFile, readFileSync, writeFileSync } from "fs";
 import { promisify } from "util";
 import * as log from "winston";
 import { DefaultFileReader, IFileReader } from "./file-reader";
@@ -39,7 +39,7 @@ export function reloadConfig(configPath: string) {
     config = loadedConfig;
     log.verbose(`Configuration loaded.`);
   } catch (ex) {
-    log.error(`Could not load configuration. Falling back to defaults.`);
+    log.error(`Could not load configuration from './config.json'. Falling back to defaults.`);
   }
 }
 
@@ -77,8 +77,27 @@ export async function reloadServiceFile(serviceFilePath: string): Promise<object
       return null;
     }
   } catch (ex) {
-    log.error(`Error: could not load the service file. Make sure '${serviceFilePath}' is accessible.`);
+    log.error(`could not load the service file. Make sure '${serviceFilePath}' ` +
+              `is accessible. Run 'jsonsvr --init' to create the initial configurations.`);
     log.debug(ex);
   }
   return null;
+}
+
+export function runInitializer() {
+  if (!existsSync("./config.json")) {
+    const configTemplate = require("./config.template.json");
+    writeFileSync("./config.json", JSON.stringify(configTemplate, null, 2), { encoding: "utf-8" });
+    log.info("The file ./config.json has been created.");
+  } else {
+    log.warn("./config.json exists, will not overwrite.");
+  }
+
+  if (!existsSync("./service.json")) {
+    const serviceTemplate =  require("./service.template.json");
+    writeFileSync("./service.json", JSON.stringify(serviceTemplate, null, 2), { encoding: "utf-8" });
+    log.info("The file ./service.json has been created.");
+  } else {
+    log.warn("./service.json exists, will not overwrite");
+  }
 }

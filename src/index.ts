@@ -10,20 +10,34 @@ import { Server } from "net";
 import { argv } from "process";
 import * as log from "winston";
 import * as lib from "./testlib";
-import { config, getReaderForUri, loadLibraries, parseParams, reloadConfig, reloadServiceFile } from "./utils";
+import { config,
+         getReaderForUri,
+         loadLibraries,
+         parseParams,
+         reloadConfig,
+         reloadServiceFile,
+         runInitializer,
+       } from "./utils";
 
 const params = parseParams(argv);
 const configPath = params.config || "./config.json";
+const init = params.init;
 
 const app = express();
 const contextData = {};
 
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+configureLogs();
+
+if (init !== undefined) { // init is expected to be null if presented on the command line.
+  runInitializer();
+  process.exit(0);
+}
 
 installSpecialCommands();
 reloadConfig(configPath);
-configureLogs();
 loadLibraries();
 
 config.port = params.port || config.port || "80";

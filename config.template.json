@@ -1,7 +1,9 @@
 {
-  "port": "80",
+  "port": "8080",
   "imports": {
     "moment": "moment",
     "uuid": "uuid"
-  }
+  },
+  "serviceDescriptor": "./service.json",
+  "noDefaultIndex": true
 }

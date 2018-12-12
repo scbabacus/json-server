@@ -1,9 +1,15 @@
 {
-  "/api/health": {
+  "/api/version": {
     "GET": {
       "headers": {
-        "Content-Type": "application/json"
+        "Content-Type": "text/html"
       },
+      "responseText": "1.0"
+    }
+  },
+
+  "/api/health": {
+    "GET": {
       "responseText": "{\"success\": true, \"health\": \"healthy\"}"
     }
   }

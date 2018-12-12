@@ -16,4 +16,9 @@ gulp.task('compile-md', () => {
     .pipe(gulp.dest('dist'));
 });
 
-gulp.task("default", ["compile-md", "compile-ts"]);
+gulp.task('copy-templates', () => {
+  return gulp.src('./*.template.json')
+    .pipe(gulp.dest('dist'));
+});
+
+gulp.task("default", ["compile-md", "compile-ts", "copy-templates"]);
