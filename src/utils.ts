@@ -105,11 +105,21 @@ export function runInitializer() {
 }
 
 function executeServiceInitializer(serviceDef: any) {
-  if (!serviceDef.$init) { return; }
+  if (!serviceDef.$init) {
+    log.debug(`Service Definition does not contain $init initializer.`);
+    return;
+  }
+
+  log.debug(`Executing service initializers`);
 
   const ctx = {
     data: global.data,
   };
 
-  executeJsStatement(serviceDef.$init, ctx);
+  try {
+    log.debug(`global data = ${JSON.stringify(global.data, null, 2)}`);
+    executeJsStatement(serviceDef.$init, ctx);
+  } catch (err) {
+    log.error(err);
+  }
 }

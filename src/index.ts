@@ -28,6 +28,8 @@ const loglevel = params.debug !== undefined ? "debug" : "info";
 const app = express();
 const contextData = {};
 
+global.data = contextData;
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -180,7 +182,6 @@ async function getServiceHandler(plainMdef: MethodDef[]): Promise<RequestHandler
     global.response = res;
     global.req = req;
     global.res = res;
-    global.data = contextData;
 
     printDebugDump();
 
