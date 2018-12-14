@@ -25,7 +25,7 @@ const configPath = params.config || "./config.json";
 const init = params.init;
 const loglevel = params.debug !== undefined ? "debug" : "info";
 
-const app = express();
+let app = express();
 const contextData = {};
 
 global.data = contextData;
@@ -48,20 +48,7 @@ config.port = params.port || config.port || "80";
 
 let server: Server | null = null;
 
-(async () => {
-  const service = await reloadServiceFile(config.serviceDescriptor || "./data/service.json");
-  if (service !== null) {
-    await processService(service as Service);
-    if (!config.noDefaultIndex) { tryMountIndexPage(app, service as Service); }
-    try {
-      server = app.listen(config.port, () => log.info(`Listening ${config.port}`));
-    } catch (err) {
-      log.error(err);
-    }
-  } else {
-    log.error(`Could not start server: failed to load the service descriptor file.`);
-  }
-})();
+startService(config.port);
 
 // tslint:disable:interface-name
 interface MethodDef {
@@ -74,14 +61,29 @@ interface MethodDef {
   errorResponse?: number; // HTTP response code. Mutually exclusive with response and redirect
   response?: string;	// relative path to the file to use as a result. Supports: *.json, *.html
   responseText?: string; // constant text response
-  preScript?: string; // Javascript to run before the response is sent
-  postScript?: string; // Javascript to run after the response is sent
+  preScript?: string | string[]; // Javascript to run before the response is sent
+  postScript?: string | string[]; // Javascript to run after the response is sent
 }
 
 interface Service {
   [servicePath: string]: {
     [method: string]: MethodDef | MethodDef[],
   };
+}
+
+async function startService(port: string) {
+  const service = await reloadServiceFile(config.serviceDescriptor || "./data/service.json");
+  if (service !== null) {
+    await processService(service as Service);
+    if (!config.noDefaultIndex) { tryMountIndexPage(app, service as Service); }
+    try {
+      server = app.listen(port, () => log.info(`Listening ${port}`));
+    } catch (err) {
+      log.error(err);
+    }
+  } else {
+    log.error(`Could not start server: failed to load the service descriptor file.`);
+  }
 }
 
 function configureLogs(level: string = "info") {
@@ -97,16 +99,34 @@ function installSpecialCommands() {
   app.get("/_stop", (req, res) => {
     res.json({ success: true, time: moment().toISOString() });
     if (server) {
-      server.close(() => log.info(`Server stopped at ${moment()}`));
+      server.close(() => log.info(`Server stopped at ${moment().toISOString()}`));
     } else {
       log.error("The server is not currently active.");
     }
   });
 
   app.get("/_reload", async (req, res) => {
-    const s = await reloadServiceFile(config.serviceDescriptor || "./data/service.json");
-    await processService(s as Service);
-    res.json({ success: true });
+    if (server) {
+      res.json({ message: "Service reload request submitted."
+          + "The reload may take time to take effect." , success: true });
+      log.info("Reloading the service definition");
+      server.getConnections((err, count) => err ? `Could not count connections`
+              : log.debug(`The server currently has ${count} connections.`));
+      server.close(async (err: Error) => {
+        if (!err) {
+          server = null;
+          log.verbose("The server closed");
+          app = express();
+          startService(config.port);
+          log.info("The services reloaded.");
+        } else {
+          log.error(`Failed to terminate the server: ${err}`);
+        }
+      });
+    } else {
+      res.json({ success: false, message: "Server is not currently active" });
+      log.error("The server is not currently active");
+    }
   });
 }
 
@@ -134,18 +154,18 @@ async function processService(services: Service) {
   for (const svc of Object.keys(services).filter((route) => !route.match(/^\$/))) {
     for (const method of Object.keys(services[svc])) {
       const svcItem = services[svc];
-      const methods: MethodDef[] = Array.isArray(svcItem[method]) ? svcItem[method] as MethodDef[]
+      const methodDefs: MethodDef[] = Array.isArray(svcItem[method]) ? svcItem[method] as MethodDef[]
         : [svcItem[method] as MethodDef];
 
       switch (method.toLowerCase()) {
-        case "get": router.get(svc, await getServiceHandler(methods)); break;
-        case "post": router.post(svc, await getServiceHandler(methods)); break;
-        case "put": router.put(svc, await getServiceHandler(methods)); break;
-        case "delete": router.delete(svc, await getServiceHandler(methods)); break;
-        case "patch": router.patch(svc, await getServiceHandler(methods)); break;
-        case "options": router.options(svc, await getServiceHandler(methods)); break;
-        case "head": router.head(svc, await getServiceHandler(methods)); break;
-        case "*": router.all(svc, await getServiceHandler(methods)); break;
+        case "get": router.get(svc, await getServiceHandler(methodDefs)); break;
+        case "post": router.post(svc, await getServiceHandler(methodDefs)); break;
+        case "put": router.put(svc, await getServiceHandler(methodDefs)); break;
+        case "delete": router.delete(svc, await getServiceHandler(methodDefs)); break;
+        case "patch": router.patch(svc, await getServiceHandler(methodDefs)); break;
+        case "options": router.options(svc, await getServiceHandler(methodDefs)); break;
+        case "head": router.head(svc, await getServiceHandler(methodDefs)); break;
+        case "*": router.all(svc, await getServiceHandler(methodDefs)); break;
         default:
           log.error(`Could not register service - unsupported HTTP method: ${method}`);
           continue; // so that we don't log the success.
@@ -153,7 +173,9 @@ async function processService(services: Service) {
 
       log.info(`Service registered: ${method} ${svc}`);
     }
+
     app.use("/", router);
+    installSpecialCommands();
   }
 }
 
