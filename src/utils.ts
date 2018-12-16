@@ -1,4 +1,5 @@
 import { existsSync, readFile, readFileSync, writeFileSync } from "fs";
+import * as moment from "moment";
 import { promisify } from "util";
 import * as log from "winston";
 import { executeJsStatement } from "./executor";
@@ -12,6 +13,10 @@ interface IJsonServerConfig {
   noDefaultIndex?: boolean;
 }
 
+export interface ICommandlineParam {
+  [paramName: string]: string | null;
+}
+
 export let config: IJsonServerConfig = {
   imports: {},
   noDefaultIndex: false,
@@ -19,7 +24,16 @@ export let config: IJsonServerConfig = {
   serviceDescriptor: "./data/service.json",
 };
 
-export function parseParams(args: string[]): {[param: string]: string | null} {
+export function configureLogs(level: string = "info") {
+  const con = new log.transports.Console({
+    format: log.format.printf((info) => `${moment().toISOString()} [${info.level}] ${info.message}`),
+  });
+
+  con.level = level;
+  log.add(con);
+}
+
+export function parseParams(args: string[]): ICommandlineParam {
   const params: {[key: string]: string | null} = {};
 
   args.forEach((arg, i) => {
@@ -34,10 +48,15 @@ export function parseParams(args: string[]): {[param: string]: string | null} {
   return params;
 }
 
-export function reloadConfig(configPath: string) {
+export function reloadConfig(overridingParams: ICommandlineParam) {
   try {
+    const configPath = overridingParams.config || "./config.json";
     const loadedConfig = JSON.parse(readFileSync(configPath).toString("utf-8"));
     config = loadedConfig;
+
+    config.port = overridingParams.port || config.port || "8080";
+    config.serviceDescriptor = overridingParams.service || config.serviceDescriptor || "./service.json";
+
     log.verbose(`Configuration loaded.`);
   } catch (ex) {
     log.error(`Could not load configuration from './config.json'. Falling back to defaults.`);
@@ -122,4 +141,12 @@ function executeServiceInitializer(serviceDef: any) {
   } catch (err) {
     log.error(err);
   }
+}
+
+export function printDebugDump() {
+  log.debug(`ctx.data = ${JSON.stringify(global.data, null, 2)}`);
+  log.debug(`ctx.req.headers  = ${JSON.stringify(global.req.headers, null, 2)}`);
+  log.debug(`ctx.req.params  = ${JSON.stringify(global.req.params, null, 2)}`);
+  log.debug(`ctx.req.query  = ${JSON.stringify(global.req.query, null, 2)}`);
+  log.debug(`ctx.req.body  = ${JSON.stringify(global.req.body, null, 2)}`);
 }
