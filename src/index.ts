@@ -373,10 +373,11 @@ async function processArrayCommand(innerJson: any, context: object): Promise<any
   const arrayDescriptor = innerJson as ArrayDescriptor;
   if (arrayDescriptor.count === undefined) { throw Error(`expected $array to contain .count`); }
   if (arrayDescriptor.element === undefined) { throw Error(`expected $array to contain .element`); }
+  if (typeof arrayDescriptor.count !== "string" && typeof arrayDescriptor.count !== "number") { throw Error(`expected $array.element to be string or number`); }
 
   const result = [];
-
-  for (let i = 0; i < arrayDescriptor.count; i++) {
+  let count = (typeof arrayDescriptor.count === "string")?interpolateStringValue(arrayDescriptor.count, context):arrayDescriptor.count;
+  for (let i = 0; i < count; i++) {
     if (typeof arrayDescriptor.element === "object") {
       const elemValue = await interpolateJSON(JSON.stringify(arrayDescriptor.element), {...context, i});
       result.push(elemValue);
