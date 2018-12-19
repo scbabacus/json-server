@@ -72,6 +72,8 @@ async function interpolateJSON(json: string | object, context: object): Promise<
   for (const key of Object.keys(jsonData)) {
     if (key.match(/^\$/)) {
       resultingObject = await processCommand(key, jsonData[key], context);
+    } else if (Array.isArray(jsonData[key])) {
+      resultingObject[key] = jsonData[key];
     } else if (typeof jsonData[key] === "object") {
       resultingObject[key] = await interpolateJSON(JSON.stringify(jsonData[key]), context);
     } else if (typeof jsonData[key] === "string") {
