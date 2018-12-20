@@ -192,7 +192,11 @@ async function processArrayCommand(innerJson: any, context: object): Promise<any
 
   const result = [];
 
-  for (let i = 0; i < arrayDescriptor.count; i++) {
+  const count = (typeof arrayDescriptor.count === "string") ?
+                interpolateStringValue(arrayDescriptor.count, context) :
+                arrayDescriptor.count;
+
+  for (let i = 0; i < count; i++) {
     if (typeof arrayDescriptor.element === "object") {
       const elemValue = await interpolateJSON(JSON.stringify(arrayDescriptor.element), {...context, i});
       result.push(elemValue);
