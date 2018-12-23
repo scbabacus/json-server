@@ -35,20 +35,30 @@ export function configureLogs(level: string = "info") {
 
 export function parseParams(args: string[]): ICommandlineParam {
   const params: {[key: string]: string | null} = {};
+  let nextValueConsumed = false;
 
   args.forEach((arg, i) => {
     const matches = arg.match(/^\-\-(.*)/);
     if (matches) {
       const argName = matches[1];
       const argValue = i < args.length - 1 ? args[i + 1] : null;
-      params[argName] = argValue;
+      params[argName] = argValue == null ? null : ( argValue.match(/^\-\-(.*)/) ? null : argValue );
+      nextValueConsumed = params[argName] !== null;
+    } else {
+      if (!nextValueConsumed) {
+        if (!params[""]) {
+          params[""] = arg;
+        } else {
+          params[""] += " " + arg;
+        }
+      }
     }
   });
 
   return params;
 }
 
-export function reloadConfig(overridingParams: ICommandlineParam) {
+export function reloadConfig(overridingParams: ICommandlineParam = {}) {
   try {
     const configPath = overridingParams.config || "./config.json";
     const loadedConfig = JSON.parse(readFileSync(configPath).toString("utf-8"));
