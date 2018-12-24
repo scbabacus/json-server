@@ -155,8 +155,12 @@ function executeServiceInitializer(serviceDef: any) {
 
 export function printDebugDump() {
   log.debug(`ctx.data = ${JSON.stringify(global.data, null, 2)}`);
-  log.debug(`ctx.req.headers  = ${JSON.stringify(global.req.headers, null, 2)}`);
-  log.debug(`ctx.req.params  = ${JSON.stringify(global.req.params, null, 2)}`);
-  log.debug(`ctx.req.query  = ${JSON.stringify(global.req.query, null, 2)}`);
-  log.debug(`ctx.req.body  = ${JSON.stringify(global.req.body, null, 2)}`);
+  if (global.req) {
+    log.debug(`ctx.req.headers  = ${JSON.stringify(global.req.headers, null, 2)}`);
+    log.debug(`ctx.req.params  = ${JSON.stringify(global.req.params, null, 2)}`);
+    log.debug(`ctx.req.query  = ${JSON.stringify(global.req.query, null, 2)}`);
+    log.debug(`ctx.req.body  = ${JSON.stringify(global.req.body, null, 2)}`);
+  } else {
+    log.debug(`ctx.req = ${global.req}`);
+  }
 }
