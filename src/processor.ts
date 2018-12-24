@@ -1,5 +1,6 @@
 import * as express from "express";
 import * as fs from "fs";
+import * as URL from "url";
 import * as log from "winston";
 
 import { executeJsExpression, executeJsStatement } from "./executor";
@@ -125,7 +126,20 @@ async function responseHandler(mdef: MethodDef, context: any) {
 }
 
 function redirectHandler(mdef: MethodDef, context: any) {
-  context.res.redirect(mdef.redirect || "/");
+  const url = mdef.redirect || "/";
+
+  const redirectUrl = (() => {
+    if (mdef.redirectQueryString) {
+      const originalUrl = URL.parse(context.req.url);
+      const inputUrl = URL.parse(url);
+      inputUrl.search = originalUrl.search;
+      return URL.format(inputUrl);
+    } else {
+      return url;
+    }
+  })();
+
+  context.res.redirect(redirectUrl);
 }
 
 function errorHandler(mdef: MethodDef, context: any) {

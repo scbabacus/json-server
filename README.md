@@ -168,12 +168,26 @@ Respond with the given HTTP status code.
 ```
 
 #### redirect
-Direct the browser to the redirected url for this API.
+Direct the browser to the redirected URL for this API. The `redirect` parameter defines the target URL to redirect to. No query string are
+being carried over from the original URL unless the `redirectQueryString` parameter is set to `true`. See [redirectQueryString](#redirectquerystring) option
+for more information.
 
 ```json
 {
   "GET": {
     "redirect": "http://www.google.com"
+  }
+}
+```
+
+#### redirectQueryString
+Carry over the query string from the request to the redirected URI. Note that all the query strings from the `redirect` parameter will be replaced.
+
+```json
+{
+  "GET": {
+    "redirect": "http://www.google.com/"
+    "redirectQueryString": true
   }
 }
 ```
