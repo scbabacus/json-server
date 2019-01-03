@@ -186,7 +186,7 @@ Carry over the query string from the request to the redirected URI. Note that al
 ```json
 {
   "GET": {
-    "redirect": "http://www.google.com/"
+    "redirect": "http://www.google.com/",
     "redirectQueryString": true
   }
 }

@@ -1,5 +1,6 @@
 import * as express from "express";
 import * as fs from "fs";
+import fetch, { RequestInit } from "node-fetch";
 import * as URL from "url";
 import * as log from "winston";
 
@@ -40,6 +41,8 @@ export async function interpretMethodDefinitions(mdefArray: MethodDef[], context
     errorHandler(mdef, context);
   } else if (mdef.responseText) {
     responseTextHandler(mdef, context);
+  } else if (mdef.proxy) {
+    proxyHandler(mdef, context);
   } else {
     res.sendStatus(500);
   }
@@ -140,6 +143,23 @@ function redirectHandler(mdef: MethodDef, context: any) {
   })();
 
   context.res.redirect(redirectUrl);
+}
+
+async function proxyHandler(mdef: MethodDef, context: any) {
+  const urlStr = mdef.proxy;
+  if (!urlStr) { throw Error("Require non-null, non-empty proxy url"); }
+  const proxyUrl = URL.parse(urlStr);
+  const originalUrl = URL.parse(context.req.url);
+
+  proxyUrl.search = originalUrl.search;
+
+  const request: RequestInit = {
+    body: JSON.stringify(context.req.body),
+    headers: context.req.headers,
+    method: context.req.method,
+  };
+  const response = await fetch(URL.format(proxyUrl));
+  
 }
 
 function errorHandler(mdef: MethodDef, context: any) {

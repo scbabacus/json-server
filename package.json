@@ -30,10 +30,12 @@
     "dist/"
   ],
   "dependencies": {
+    "@types/node-fetch": "^2.1.4",
     "aws-sdk": "^2.360.0",
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
     "moment": "^2.22.2",
+    "node-fetch": "^2.3.0",
     "ts-node": "^6.1.0",
     "uuid": "^3.2.1",
     "winston": "^3.1.0"

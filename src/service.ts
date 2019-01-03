@@ -20,6 +20,7 @@ export interface MethodDef {
   };
   redirect?: string; // URL to which response would be redirected. Mutually exclusive with response and errorResponse
   redirectQueryString?: boolean; // Copy over the query strings from the original request to the redirected.
+  proxy?: string; // URL to which the request should be proxied to.
   errorResponse?: number; // HTTP response code. Mutually exclusive with response and redirect
   response?: string;	// relative path to the file to use as a result. Supports: *.json, *.html
   responseText?: string; // constant text response
