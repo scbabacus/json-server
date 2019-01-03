@@ -38,11 +38,16 @@ export function configureLogs(level: string = "info") {
 
 function configureAccessLog() {
   if (config && config.accessLog) {
+    const transports = config.accessLog === "console" ?
+      new log.transports.Console() :
+      new log.transports.File({filename: config.accessLog});
+
     accessLog = log.createLogger({
-      format: log.format.printf((info) => `${new Date().toISOString()}: ${info.message}`),
+      format: log.format.printf((info) => `${moment().toISOString()} [access] ${info.message}`),
       level: "debug",
-      transports: new log.transports.File({ filename: config.accessLog }),
+      transports,
     });
+
     log.verbose(`Access log can be found at ${config.accessLog}`);
   }
 }
