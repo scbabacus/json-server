@@ -6,11 +6,14 @@ import { executeJsStatement } from "./executor";
 import { DefaultFileReader, IFileReader } from "./file-reader";
 import { S3Reader } from "./s3-reader";
 
+let accessLog: log.Logger | null = null;
+
 interface IJsonServerConfig {
   imports: { [aliasName: string]: string };
   port: string;
   serviceDescriptor: string;
   noDefaultIndex?: boolean;
+  accessLog?: string;
 }
 
 export interface ICommandlineParam {
@@ -31,6 +34,28 @@ export function configureLogs(level: string = "info") {
 
   con.level = level;
   log.add(con);
+}
+
+function configureAccessLog() {
+  if (config && config.accessLog) {
+    const transports = config.accessLog === "console" ?
+      new log.transports.Console() :
+      new log.transports.File({filename: config.accessLog});
+
+    accessLog = log.createLogger({
+      format: log.format.printf((info) => `${moment().toISOString()} [access] ${info.message}`),
+      level: "debug",
+      transports,
+    });
+
+    log.verbose(`Access log can be found at ${config.accessLog}`);
+  }
+}
+
+export function logAccess(message: string) {
+  if (accessLog !== null) {
+    accessLog.info(message);
+  }
 }
 
 export function parseParams(args: string[]): ICommandlineParam {
@@ -68,6 +93,8 @@ export function reloadConfig(overridingParams: ICommandlineParam = {}) {
     config.serviceDescriptor = overridingParams.service || config.serviceDescriptor || "./service.json";
 
     log.verbose(`Configuration loaded.`);
+
+    configureAccessLog();
   } catch (ex) {
     log.error(`Could not load configuration from './config.json'. Falling back to defaults.`);
   }

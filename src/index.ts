@@ -5,6 +5,7 @@ import { exec } from "child_process";
 import * as express from "express";
 import { argv } from "process";
 import * as log from "winston";
+import { accessLogger } from "./access-logger";
 import { startService } from "./service";
 import * as lib from "./testlib";
 import { config,
@@ -20,6 +21,7 @@ const app = express();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(accessLogger);
 
 const loglevel = params.debug !== undefined ? "debug" : "info";
 configureLogs(loglevel);

@@ -35,7 +35,8 @@ The `config.json` file example:
     "module identifier": "module name"
   },
   "serviceDescriptor": "./data/service.json",
-  "noDefaultIndexPage": false
+  "noDefaultIndexPage": false,
+  "accessLog": "./access.log"
 }
 ```
 
@@ -79,6 +80,9 @@ The bootstraping template for `service.json` can be generated using the `jsonsvr
 
 ### noDefaultIndexPage
 By default, the server will be started with the root path `/` being a documentation page (this document) if the root path was not defined in `service.json` file. You can disable this behavior by setting the `noDefaultIndexPage` to `true`, in which the server will return 404-Not Found.  
+
+### Access Log
+Set the `accessLog` to the path of a log file or a special keyword `console` to enable the full dump of requests and responses made by JSON server. In latter case, the access log is printed on the console.
 
 ## Writing service.json
 You create `service.json` file to define APIs. The `service.json` file is loaded when the server starts. It is located at `./data/services.json` by default. However, you can specify the different location in `serviceDescriptor` property on the `config.json` file. You may need to restart the server if you made changes to the service descriptor file.
