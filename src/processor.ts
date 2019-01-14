@@ -148,18 +148,45 @@ function redirectHandler(mdef: MethodDef, context: any) {
 async function proxyHandler(mdef: MethodDef, context: any) {
   const urlStr = mdef.proxy;
   if (!urlStr) { throw Error("Require non-null, non-empty proxy url"); }
-  const proxyUrl = URL.parse(urlStr);
-  const originalUrl = URL.parse(context.req.url);
 
-  proxyUrl.search = originalUrl.search;
+  try {
+    const proxyUrl = URL.parse(urlStr);
+    const originalUrl = URL.parse(context.req.url);
 
-  const request: RequestInit = {
-    body: JSON.stringify(context.req.body),
-    headers: context.req.headers,
-    method: context.req.method,
-  };
-  const response = await fetch(URL.format(proxyUrl));
-  
+    proxyUrl.search = originalUrl.search;
+
+    const cleanedHeaders = removeProhibitedRequestHeaders(context.req.headers);
+
+    const request: RequestInit = {
+      body: ["GET", "HEAD"].indexOf(context.req.method.toUpperCase()) >= 0 ?
+      undefined : JSON.stringify(context.req.body),
+      headers: cleanedHeaders,
+      method: context.req.method,
+    };
+
+    const response = await fetch(URL.format(proxyUrl), request);
+    const payload = await response.text();
+
+    context.res.status(response.status);
+    for (const header of response.headers) {
+      const key = header.shift();
+      const val = header.shift();
+
+      context.res.set(key, val);
+    }
+    context.res.send(payload);
+  } catch (ex) {
+    context.res.status(500);
+    context.res.send(ex.toString());
+  }
+}
+
+function removeProhibitedRequestHeaders(originalHeaders: any): {[header: string]: string} {
+  const headers = {} as {[header: string]: string};
+  Object.assign(headers, originalHeaders);
+  delete headers.host;
+  delete headers.origin;
+  return headers;
 }
 
 function errorHandler(mdef: MethodDef, context: any) {

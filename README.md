@@ -146,6 +146,7 @@ Several ways to define a response for an API described in `service.json` file. Y
 - `errorResponse` - respond with HTTP status code
 - `redirect` - respond with 301 status code with redirect URL
 - `textResponse` - response with the given text
+- `proxy` - forward the request to the specified URL and respond with the response from such URL
 
 > Note: The response types are mutual exclusive. They cannot be used together in a single API method. 
 
@@ -207,6 +208,16 @@ Respond with the given text
 }
 ```
 You may use javascript expression in textResponse. See [javascript expression](#javascript-expression) for more details.
+
+#### proxy
+Forward the request to the specified URL and respond with the response from such URL
+```json
+{
+  "GET": {
+    "proxy": "http://www.google.com"
+  }
+}
+```
 
 #### condition
 Only use this particular method definition if the condition is met, i.e. the expression returns `true` or a javascript truthly value. Otherwise, return 404 or the other method definition that has its condition matched. In the latter case, an array of method definitions has to be given instead of an method definition content.
