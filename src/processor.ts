@@ -169,8 +169,14 @@ async function proxyHandler(mdef: MethodDef, context: any) {
 
     context.res.status(response.status);
     for (const header of response.headers) {
-      const key = header.shift();
-      const val = header.shift();
+      const key = header.shift() as string;
+      const val = header.shift() as string;
+
+      // Since express needs a middleware to send off gzipped content,
+      // we may defer support to other version.
+      if (key.toLowerCase() === "content-encoding") {
+        continue;
+      }
 
       context.res.set(key, val);
     }
