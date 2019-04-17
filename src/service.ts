@@ -23,6 +23,7 @@ export interface MethodDef {
   proxy?: string; // URL to which the request should be proxied to.
   errorResponse?: number; // HTTP response code. Mutually exclusive with response and redirect
   response?: string;	// relative path to the file to use as a result. Supports: *.json, *.html
+  responseHttpStatus?: number; //
   responseText?: string; // constant text response
   preScript?: string | string[]; // Javascript to run before the response is sent
   postScript?: string | string[]; // Javascript to run after the response is sent

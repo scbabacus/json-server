@@ -119,6 +119,9 @@ async function responseHandler(mdef: MethodDef, context: any) {
   const rdr = getReaderForUri(interpolatedFile);
   const data = await rdr.readFile(interpolatedFile);
 
+  if(mdef.responseHttpStatus)
+    context.res.status(mdef.responseHttpStatus); 
+
   if (interpolatedFile.match(/\.html$/i)) {
     const html = interpolateHtml(data, context);
     context.res.end(html);
@@ -166,7 +169,7 @@ async function proxyHandler(mdef: MethodDef, context: any) {
 
     const response = await fetch(URL.format(proxyUrl), request);
     const payload = await response.text();
-
+    
     context.res.status(response.status);
     for (const header of response.headers) {
       const key = header.shift() as string;
