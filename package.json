@@ -1,6 +1,6 @@
 {
   "name": "jsonsvr",
-  "version": "0.1.21",
+  "version": "0.1.22",
   "description": "Create or mock REST API quickly using dynamic JSON template.",
   "keywords": [
     "mock",
